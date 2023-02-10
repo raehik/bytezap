@@ -15,7 +15,7 @@
             store2.root = ./.;
           };
           # buildTools = hp: { fourmolu = hp.fourmolu; ghcid = null; };
-          buildTools = hp: { hls = null; fourmolu = null; ghcid = null; };
+          buildTools = hp: { haskell-language-server = null; ghcid = null; hlint = null; };
           # overrides = self: super: { };
           # hlintCheck.enable = true;
           hlintCheck.enable = false;

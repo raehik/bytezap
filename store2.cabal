@@ -1,0 +1,45 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.35.1.
+--
+-- see: https://github.com/sol/hpack
+
+name:           store2
+version:        0.0.0
+category:       Data, Serialization
+author:         Ben Orchard
+maintainer:     Ben Orchard <thefirstmuffinman@gmail.com>
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+
+library
+  exposed-modules:
+      Json
+      Store2
+      Store2.Primitive
+      Store2.Primitive.Integer
+      Test
+  other-modules:
+      Paths_store2
+  hs-source-dirs:
+      src
+  default-extensions:
+      LambdaCase
+      NoStarIsType
+      DerivingVia
+      DeriveAnyClass
+      GADTs
+      RoleAnnotations
+      DefaultSignatures
+      TypeFamilies
+      DataKinds
+      MagicHash
+  ghc-options: -Wall
+  build-depends:
+      base >=4.14 && <5
+    , bytestring ==0.11.*
+    , text >=1.2 && <2.1
+    , vector >=0.12.3.1 && <0.13
+    , vector-sized >=1.5.0 && <1.6
+  default-language: GHC2021
