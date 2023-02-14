@@ -19,7 +19,6 @@ library
       Bytezap
       Bytezap.ByteString
       Bytezap.Integer
-      Bytezap.Prim.Integer
   other-modules:
       Paths_bytezap
   hs-source-dirs:

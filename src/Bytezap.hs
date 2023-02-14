@@ -8,33 +8,36 @@ import Data.ByteString.Internal qualified as B
 import GHC.IO
 import Data.Word
 
+-- | TODO inner poke type
+type Poke# = Addr# -> Int# -> State# RealWorld -> (# State# RealWorld, Int# #)
+
 -- | Unboxed poke operation.
 --
 -- A newtype allows us a monoidal interface.
 newtype Poke = Poke
-  { -- | Write at an address and return the next address.
+  { -- | Write at an offset from an address and return the next offset.
     --
-    -- The returned address must be after the argument address.
+    -- The returned offset must be after the argument offset.
     --
     -- TODO I use that output order because it matches IO. Probs doesn't matter.
-    unPoke :: Addr# -> State# RealWorld -> (# State# RealWorld, Addr# #)
+    unPoke :: Poke#
   }
 
 -- | Construct a 'Poke'.
-poke :: (Addr# -> State# RealWorld-> (# State# RealWorld, Addr# #)) -> Poke
+poke :: Poke# -> Poke
 poke = Poke
 {-# INLINE poke #-}
 
 -- | Sequence two 'Poke's left-to-right.
 instance Semigroup Poke where
     {-# INLINE (<>) #-}
-    Poke l <> Poke r = Poke $ \addr# st# ->
-        case l addr# st# of (# st'#, addr'# #) -> r addr'# st'#
+    Poke l <> Poke r = Poke $ \addr# os# st# ->
+        case l addr# os# st# of (# st'#, os'# #) -> r addr# os'# st'#
 
 -- | The empty 'Poke' simply returns its arguments.
 instance Monoid Poke where
     {-# INLINE mempty #-}
-    mempty = Poke $ \addr# st# -> (# st#, addr# #)
+    mempty = Poke $ \addr# os# st# -> (# st#, os# #)
 
 -- | Allocate a buffer of the given length and run a 'Poke' over it.
 --
@@ -47,7 +50,7 @@ runPoke len = B.unsafeCreate len . wrapPoke
 
 wrapPoke :: Poke -> Ptr Word8 -> IO ()
 wrapPoke (Poke p) (Ptr addr#) =
-    IO (\st# -> case p addr# st# of (# l, _r #) -> (# l, () #))
+    IO (\st# -> case p addr# 0# st# of (# l, _r #) -> (# l, () #))
 {-# INLINE wrapPoke #-}
 
 -- | Instructions on how to perform a sized write.
@@ -62,7 +65,7 @@ data Write = Write
 -- | Construct a 'Write'.
 write
     :: Int
-    -> (Addr# -> State# RealWorld-> (# State# RealWorld, Addr# #))
+    -> Poke#
     -> Write
 write len p = Write len (Poke p)
 {-# INLINE write #-}
