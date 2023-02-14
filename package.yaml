@@ -1,4 +1,5 @@
-name: store2
+name: bytezap
+synopsis: Non-resizing strict bytestring building
 category: Data, Serialization
 license: MIT
 license-file: LICENSE

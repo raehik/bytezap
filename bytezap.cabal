@@ -4,8 +4,9 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 
-name:           store2
+name:           bytezap
 version:        0.0.0
+synopsis:       Non-resizing strict bytestring building
 category:       Data, Serialization
 author:         Ben Orchard
 maintainer:     Ben Orchard <thefirstmuffinman@gmail.com>
@@ -15,13 +16,12 @@ build-type:     Simple
 
 library
   exposed-modules:
-      Json
-      Store2
-      Store2.Primitive
-      Store2.Primitive.Integer
-      Test
+      Bytezap
+      Bytezap.ByteString
+      Bytezap.Integer
+      Bytezap.Prim.Integer
   other-modules:
-      Paths_store2
+      Paths_bytezap
   hs-source-dirs:
       src
   default-extensions:
