@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           bytezap
-version:        0.0.0
+version:        0.1.0
 synopsis:       Non-resizing strict bytestring building
 category:       Data, Serialization
 author:         Ben Orchard
@@ -19,11 +19,13 @@ library
       Binrep.Generic.Put
       Binrep.Put
       Bytezap
-      Bytezap.ByteString
+      Bytezap.Bytes
       Bytezap.Class
       Bytezap.Class.Generic
+      Bytezap.Class.TH
       Bytezap.Example
       Bytezap.Int
+      Bytezap.Text
       Util.TypeNats
   other-modules:
       Paths_bytezap
@@ -40,7 +42,7 @@ library
       TypeFamilies
       DataKinds
       MagicHash
-  ghc-options: -Wall
+  ghc-options: -Wall -ddump-to-file -dsuppress-coercions -dsuppress-module-prefixes -dsuppress-type-applications -ddump-simpl
   build-depends:
       base >=4.14 && <5
     , bytestring ==0.11.*

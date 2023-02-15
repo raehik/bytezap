@@ -26,6 +26,7 @@ instance GPut f => GPut (M1 i d f) where gput (M1 a) = gput a
 instance (GPut l, GPut r) => GPut (l :*: r) where
     gput (l :*: r) = gput l <> gput r
 
+-- | only 255 constructors matey (soz)
 instance
   ( FitsInByte (SumArity (a :+: b))
   , GPutSumConstr (a :+: b)

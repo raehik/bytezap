@@ -1,7 +1,7 @@
 module Bytezap.Class where
 
 import Bytezap
-import Bytezap.ByteString qualified as W
+import Bytezap.Bytes qualified as W
 import Bytezap.Int qualified as W
 
 import Data.ByteString ( ByteString )
@@ -9,6 +9,10 @@ import Data.Word
 import Data.Int
 
 class Put a where put :: a -> Write
+
+instance Put Write where
+    {-# INLINE put #-}
+    put = id
 
 instance Put ByteString where
     {-# INLINE put #-}

@@ -1,3 +1,5 @@
+-- | Sized machine integers.
+
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE CPP #-}
 
@@ -133,6 +135,13 @@ i64be = i64
 i64le = i64
 i64be = i64 . byteSwapI64
 #endif
+
+-- TODO assumes 64-bit
+int# :: Int# -> Write
+int# a# = write 8 $ \addr# st# ->
+    case writeIntOffAddr# addr# 0# a# st# of
+      st'# -> (# st'#, addr# `plusAddr#` 8# #)
+{-# INLINE int# #-}
 
 {-
 

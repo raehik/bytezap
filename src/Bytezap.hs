@@ -14,9 +14,6 @@ import Data.ByteString.Internal qualified as B
 import GHC.IO
 import Data.Word
 
--- TODO tmp
-import GHC.Word
-
 -- | TODO inner poke type
 type Poke# = Addr# -> State# RealWorld -> (# State# RealWorld, Addr# #)
 
@@ -85,6 +82,9 @@ instance Semigroup Write where
 instance Monoid Write where
     {-# INLINE mempty #-}
     mempty = Write 0 mempty
+
+-- | Serialize and show the resulting ByteString.
+instance Show Write where showsPrec p = showsPrec p . runWrite
 
 runWrite :: Write -> B.ByteString
 runWrite (Write len p) = runPoke len p

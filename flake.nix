@@ -12,14 +12,12 @@
         haskellProjects.default = {
           haskellPackages = pkgs.haskell.packages.ghc944;
           packages = {
-            store2.root = ./.;
+            bytezap.root = ./.;
           };
           # buildTools = hp: { fourmolu = hp.fourmolu; ghcid = null; };
           buildTools = hp: { haskell-language-server = null; ghcid = null; hlint = null; };
           # overrides = self: super: { };
-          # hlintCheck.enable = true;
           hlintCheck.enable = false;
-          # hlsCheck.enable = true;
           hlsCheck.enable = false;
         };
         # haskell-flake doesn't set the default package, but you can do it here.

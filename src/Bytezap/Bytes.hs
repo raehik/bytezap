@@ -1,6 +1,8 @@
+-- | 'ByteString's and primitive byte arrays.
+
 {-# LANGUAGE UnboxedTuples #-}
 
-module Bytezap.ByteString where
+module Bytezap.Bytes where
 
 import Bytezap
 
@@ -25,3 +27,9 @@ memcpyForeignPtr :: Ptr Word8 -> ForeignPtr Word8 -> Int -> IO ()
 memcpyForeignPtr ptrTo fptrFrom len =
     B.unsafeWithForeignPtr fptrFrom $ \ptrFrom -> B.memcpy ptrTo ptrFrom len
 {-# INLINE memcpyForeignPtr #-}
+
+pokeByteArray# :: ByteArray# -> Int# -> Int# -> Poke
+pokeByteArray# arr# off# len# = poke $ \addr# st# ->
+    case copyByteArrayToAddr# arr# off# addr# len# st# of
+      st'# -> (# st'#, addr# `plusAddr#` len# #)
+{-# INLINE pokeByteArray# #-}
