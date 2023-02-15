@@ -16,9 +16,15 @@ build-type:     Simple
 
 library
   exposed-modules:
+      Binrep.Generic.Put
+      Binrep.Put
       Bytezap
       Bytezap.ByteString
-      Bytezap.Integer
+      Bytezap.Class
+      Bytezap.Class.Generic
+      Bytezap.Example
+      Bytezap.Int
+      Util.TypeNats
   other-modules:
       Paths_bytezap
   hs-source-dirs:

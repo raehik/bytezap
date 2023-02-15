@@ -16,9 +16,9 @@ byteString (B.BS fptr len) = Write len (pokeForeignPtr fptr len)
 {-# INLINE byteString #-}
 
 pokeForeignPtr :: ForeignPtr Word8 -> Int -> Poke
-pokeForeignPtr fptr len@(I# len#) = poke $ \addr# os# st# ->
-    case unIO (memcpyForeignPtr (Ptr (addr# `plusAddr#` os#)) fptr len) st# of
-      (# st'#, () #) -> (# st'#, os# +# len# #)
+pokeForeignPtr fptr len@(I# len#) = poke $ \addr# st# ->
+    case unIO (memcpyForeignPtr (Ptr addr#) fptr len) st# of
+      (# st'#, () #) -> (# st'#, addr# `plusAddr#` len# #)
 {-# INLINE pokeForeignPtr #-}
 
 memcpyForeignPtr :: Ptr Word8 -> ForeignPtr Word8 -> Int -> IO ()

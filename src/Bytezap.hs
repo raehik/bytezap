@@ -1,5 +1,11 @@
 {-# LANGUAGE UnboxedTuples #-}
 
+{- TODO
+  * size or length? be consistent
+    * check what C, Linux kernel etc. terminology is
+    * (len "size" == len "poke") ...
+-}
+
 module Bytezap where
 
 import GHC.Exts
@@ -8,8 +14,11 @@ import Data.ByteString.Internal qualified as B
 import GHC.IO
 import Data.Word
 
+-- TODO tmp
+import GHC.Word
+
 -- | TODO inner poke type
-type Poke# = Addr# -> Int# -> State# RealWorld -> (# State# RealWorld, Int# #)
+type Poke# = Addr# -> State# RealWorld -> (# State# RealWorld, Addr# #)
 
 -- | Unboxed poke operation.
 --
@@ -31,13 +40,13 @@ poke = Poke
 -- | Sequence two 'Poke's left-to-right.
 instance Semigroup Poke where
     {-# INLINE (<>) #-}
-    Poke l <> Poke r = Poke $ \addr# os# st# ->
-        case l addr# os# st# of (# st'#, os'# #) -> r addr# os'# st'#
+    Poke l <> Poke r = Poke $ \addr# st# ->
+        case l addr# st# of (# st'#, addr'# #) -> r addr'# st'#
 
 -- | The empty 'Poke' simply returns its arguments.
 instance Monoid Poke where
     {-# INLINE mempty #-}
-    mempty = Poke $ \addr# os# st# -> (# st#, os# #)
+    mempty = Poke $ \addr# st# -> (# st#, addr# #)
 
 -- | Allocate a buffer of the given length and run a 'Poke' over it.
 --
@@ -50,7 +59,7 @@ runPoke len = B.unsafeCreate len . wrapPoke
 
 wrapPoke :: Poke -> Ptr Word8 -> IO ()
 wrapPoke (Poke p) (Ptr addr#) =
-    IO (\st# -> case p addr# 0# st# of (# l, _r #) -> (# l, () #))
+    IO (\st# -> case p addr# st# of (# l, _r #) -> (# l, () #))
 {-# INLINE wrapPoke #-}
 
 -- | Instructions on how to perform a sized write.
@@ -59,14 +68,11 @@ wrapPoke (Poke p) (Ptr addr#) =
 -- specified in 'writeActionLength'. Otherwise, your computer explodes.
 data Write = Write
   { writeLength :: {-# UNPACK #-} !Int
-  , writePoke   :: !Poke -- unpack unusable (TODO confirm now is typesym)
+  , writePoke   :: !Poke -- unpack unusable TODO is strict good or not here
   }
 
 -- | Construct a 'Write'.
-write
-    :: Int
-    -> Poke#
-    -> Write
+write :: Int -> Poke# -> Write
 write len p = Write len (Poke p)
 {-# INLINE write #-}
 
