@@ -1,12 +1,12 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.1.
+-- This file has been generated from package.yaml by hpack version 0.35.2.
 --
 -- see: https://github.com/sol/hpack
 
 name:           bytezap
-version:        0.1.0
-synopsis:       Non-resizing strict bytestring building
+version:        0.2.0
+synopsis:       TODO
 category:       Data, Serialization
 author:         Ben Orchard
 maintainer:     Ben Orchard <thefirstmuffinman@gmail.com>
@@ -16,17 +16,10 @@ build-type:     Simple
 
 library
   exposed-modules:
-      Binrep.Generic.Put
-      Binrep.Put
-      Bytezap
-      Bytezap.Bytes
-      Bytezap.Class
-      Bytezap.Class.Generic
-      Bytezap.Class.TH
-      Bytezap.Example
-      Bytezap.Int
-      Bytezap.Text
-      Util.TypeNats
+      Bytezap.Poke
+      Bytezap.Pokeable
+      Raehik.Compat.GHC.Exts.GHC908MemcpyPrimops
+      Raehik.Compat.GHC.Exts.GHC910UnalignedPrimops
   other-modules:
       Paths_bytezap
   hs-source-dirs:
@@ -44,9 +37,7 @@ library
       MagicHash
   ghc-options: -Wall -ddump-to-file -dsuppress-coercions -dsuppress-module-prefixes -dsuppress-type-applications -ddump-simpl
   build-depends:
-      base >=4.14 && <5
-    , bytestring ==0.11.*
-    , text >=1.2 && <2.1
-    , vector >=0.12.3.1 && <0.13
-    , vector-sized >=1.5.0 && <1.6
+      base >=4.18.0.0 && <4.19
+    , bytestring >=0.12.1.0 && <0.13
+    , text >=2.1.1 && <2.2
   default-language: GHC2021

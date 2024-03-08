@@ -1,6 +1,5 @@
 module Bytezap.Example where
 
-import Bytezap
 import Bytezap.Class
 import Bytezap.Class.Generic
 

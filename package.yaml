@@ -1,6 +1,6 @@
 name: bytezap
-synopsis: Non-resizing strict bytestring building
-version: 0.1.0
+synopsis: TODO
+version: 0.2.0
 category: Data, Serialization
 license: MIT
 license-file: LICENSE
@@ -53,11 +53,9 @@ ghc-options:
 - -ddump-simpl
 
 dependencies:
-- base >= 4.14 && < 5
-- bytestring ^>= 0.11
-- text >= 1.2 && < 2.1
-- vector-sized ^>= 1.5.0
-- vector ^>= 0.12.3.1
+- base ^>= 4.18.0.0
+- bytestring ^>= 0.12.1.0
+- text ^>= 2.1.1
 
 library:
   source-dirs: src

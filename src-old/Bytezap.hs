@@ -1,11 +1,5 @@
 {-# LANGUAGE UnboxedTuples #-}
 
-{- TODO
-  * size or length? be consistent
-    * check what C, Linux kernel etc. terminology is
-    * (len "size" == len "poke") ...
--}
-
 module Bytezap where
 
 import GHC.Exts
@@ -45,7 +39,7 @@ instance Monoid Poke where
     {-# INLINE mempty #-}
     mempty = Poke $ \addr# st# -> (# st#, addr# #)
 
--- | Allocate a buffer of the given length and run a 'Poke' over it.
+-- | Allocate a buffer of the given size and run a 'Poke' over it.
 --
 -- The 'Poke' must fill the buffer exactly. If it goes under, you should get
 -- some random garbage at the end. If it goes over, your computer will probably
@@ -61,10 +55,10 @@ wrapPoke (Poke p) (Ptr addr#) =
 
 -- | Instructions on how to perform a sized write.
 --
--- The 'PokeAction' in 'writeActionPoke' must write the _exact_ number of bytes
--- specified in 'writeActionLength'. Otherwise, your computer explodes.
+-- The 'Poke' in 'writePoke' must write the _exact_ number of bytes specified in
+-- 'writeSize'. Otherwise, your computer explodes.
 data Write = Write
-  { writeLength :: {-# UNPACK #-} !Int
+  { writeSize :: {-# UNPACK #-} !Int
   , writePoke   :: !Poke -- unpack unusable TODO is strict good or not here
   }
 
@@ -73,7 +67,7 @@ write :: Int -> Poke# -> Write
 write len p = Write len (Poke p)
 {-# INLINE write #-}
 
--- | Sequence the 'Poke's, sum the lengths.
+-- | Sequence the 'Poke's, sum the sizes.
 instance Semigroup Write where
     {-# INLINE (<>) #-}
     Write ll lp <> Write rl rp = Write (ll + rl) (lp <> rp)
