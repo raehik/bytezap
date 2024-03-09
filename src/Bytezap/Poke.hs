@@ -50,6 +50,8 @@ wrapIO (Poke p) (Ptr addr#) = IO $ \s# ->
     case p addr# 0# s# of (# s'#, _len# #) -> (# s'#, () #)
 {-# INLINE wrapIO #-}
 
+-- | Execute a 'Poke' at a fresh 'BS.ByteString' of the given maximum length.
+--   Does not reallocate if final size is less than estimated.
 unsafeRunPokeBSUptoN :: Int -> Poke RealWorld Addr# -> BS.ByteString
 unsafeRunPokeBSUptoN len = BS.unsafeCreateUptoN len . wrapIOUptoN
 {-# INLINE unsafeRunPokeBSUptoN #-}
