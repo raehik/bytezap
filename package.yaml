@@ -52,10 +52,39 @@ ghc-options:
 - -dsuppress-type-applications
 - -ddump-simpl
 
+library:
+  source-dirs: src
+  c-sources:
+  - cbits/aligned-static-hs-data.c
+
 dependencies:
 - base ^>= 4.18.0.0
 - bytestring ^>= 0.12.1.0
 - text ^>= 2.1.1
 
-library:
-  source-dirs: src
+# TODO TMP
+- aeson
+
+tests:
+  spec:
+    source-dirs: test
+    main: Spec.hs
+    build-tools:
+    - hspec-discover ^>= 2.11.7
+    dependencies:
+    - bytezap
+    - hspec
+    - QuickCheck
+    - quickcheck-instances
+    - generic-random
+
+
+benchmarks:
+  bench:
+    source-dirs: bench
+    main: Main.hs
+    dependencies:
+    - bytezap
+    - gauge
+    ghc-options:
+    - -O2
