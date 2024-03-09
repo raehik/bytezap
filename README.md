@@ -26,8 +26,6 @@ serializing especially plain or small data.
 ## Why hasn't it been done already?
 Most people performing data serialization in Haskell aren't usually interested
 in cases where the final byte size is known upfront. It's too low level, too
-specific, and too easy to get wrong.
-
-Importantly, there is *no possible safe interface* for the basic poking.
-I provide a separate, safer serializer which tracks its size, which is slightly
-more general.
+specific, and too easy to get wrong. Better to give in and do the extra
+bookkeeping every time, for a more general library, even if it does some wasted
+work for certain operations.
