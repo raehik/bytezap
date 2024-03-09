@@ -1,5 +1,5 @@
-{-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE UnboxedTuples #-}
 
 -- this gets us our word size and maybe endianness CPP macros
 #include "MachDeps.h"
@@ -16,19 +16,23 @@ import GHC.Int
 import Data.ByteString.Internal qualified as BS
 import GHC.ForeignPtr ( ForeignPtr(..) )
 
-import Data.ByteString.Short qualified as SBS
-import Data.Text.Internal qualified as T
-import Data.Array.Byte qualified as A
+{- | Types that support direct, low-level "poking" operations, where values are
+     pointers of some sort.
 
-import Data.Char ( ord )
-import Data.Bits ( shiftR, (.&.) )
+GHC provides two sets of primops for moving primitive types between memory:
 
--- | Types that support direct, low-level "poking" operations, where values are
---   pointers of some sort.
---
--- This type class enables us to write a single program which may then serialize
--- out to either pinned memory (via an @Addr#@ unwrapped from a @ByteString@),
--- or unpinned memory (the 'MutableByteArray#' inside a @ShortByteString@).
+* via 'Addr#', for accessing non-GC (garbage collected) addresses
+* via '(Mutable)ByteArray#', for accessing GCed memory (pinned or unpinned)
+
+'BS.ByteString's are wrappers over 'ForeignPtr's storing an 'Addr#', and are not
+GC-managed for various reasons. This is the natural type to target when
+performing low-level serialization. But let us not forget the humble
+'SBS.ShortByteString', which wrap 'ByteArray#'s. These are GCed. This type class
+enables writing a single "poke program" which need only be specialized when
+running the program.
+
+Notably, 'SBS.ShortByteString's may be created in 'Control.Monad.ST.ST'.
+-}
 class Monoid (Poke s ptr) => Pokeable s (ptr :: TYPE rr) where
     w8   :: Word8  -> Poke s ptr
     w16  :: Word16 -> Poke s ptr
@@ -41,9 +45,10 @@ class Monoid (Poke s ptr) => Pokeable s (ptr :: TYPE rr) where
     int  ::  Int   -> Poke s ptr
     word :: Word   -> Poke s ptr
 
+    -- | Poke a 'BS.ByteString'.
     byteString :: BS.ByteString        -> Poke s ptr
 
-    -- Poke a 'ByteArray#' starting from the given 'Int' offset.
+    -- | Poke 'ByteArray#' starting from the given 'Int' offset.
     byteArray# :: ByteArray#    -> Int -> Poke s ptr
 
 instance Pokeable RealWorld Addr# where
@@ -210,108 +215,3 @@ instance Pokeable s (MutableByteArray# s) where
         in  case copyByteArray# ba# baos# base# os# len# s# of
               s'# -> (# s'#, os# +# len# #)
     {-# INLINE byteArray# #-}
-
-{-# INLINE w16le #-}
-{-# INLINE w16be #-}
-w16le, w16be :: Pokeable s ptr => Word16 -> Poke s ptr
-#ifdef WORDS_BIGENDIAN
-w16le = w16 . byteSwap16
-w16be = w16
-#else
-w16le = w16
-w16be = w16 . byteSwap16
-#endif
-
-{-# INLINE w32le #-}
-{-# INLINE w32be #-}
-w32le, w32be :: Pokeable s ptr => Word32 -> Poke s ptr
-#ifdef WORDS_BIGENDIAN
-w32le = w32 . byteSwap32
-w32be = w32
-#else
-w32le = w32
-w32be = w32 . byteSwap32
-#endif
-
-{-# INLINE w64le #-}
-{-# INLINE w64be #-}
-w64le, w64be :: Pokeable s ptr => Word64 -> Poke s ptr
-#ifdef WORDS_BIGENDIAN
-w64le = w64 . byteSwap64
-w64be = w64
-#else
-w64le = w64
-w64be = w64 . byteSwap64
-#endif
-
--- these look so silly lol
-
-byteSwapI16 :: Int16 -> Int16
-byteSwapI16 (I16# i#) = I16# (word16ToInt16# (wordToWord16# (byteSwap16# (word16ToWord# (int16ToWord16# i#)))))
-{-# INLINE byteSwapI16 #-}
-
-byteSwapI32 :: Int32 -> Int32
-byteSwapI32 (I32# i#) = I32# (word32ToInt32# (wordToWord32# (byteSwap32# (word32ToWord# (int32ToWord32# i#)))))
-{-# INLINE byteSwapI32 #-}
-
-byteSwapI64 :: Int64 -> Int64
-byteSwapI64 (I64# i#) = I64# (word64ToInt64# (byteSwap64# (int64ToWord64# i#)))
-{-# INLINE byteSwapI64 #-}
-
-{-# INLINE i16le #-}
-{-# INLINE i16be #-}
-i16le, i16be :: Pokeable s ptr => Int16 -> Poke s ptr
-#ifdef WORDS_BIGENDIAN
-i16le = i16 . byteSwapI16
-i16be = i16
-#else
-i16le = i16
-i16be = i16 . byteSwapI16
-#endif
-
-{-# INLINE i32le #-}
-{-# INLINE i32be #-}
-i32le, i32be :: Pokeable s ptr => Int32 -> Poke s ptr
-#ifdef WORDS_BIGENDIAN
-i32le = i32 . byteSwapI32
-i32be = i32
-#else
-i32le = i32
-i32be = i32 . byteSwapI32
-#endif
-
-{-# INLINE i64le #-}
-{-# INLINE i64be #-}
-i64le, i64be :: Pokeable s ptr => Int64 -> Poke s ptr
-#ifdef WORDS_BIGENDIAN
-i64le = i64 . byteSwapI64
-i64be = i64
-#else
-i64le = i64
-i64be = i64 . byteSwapI64
-#endif
-
-shortByteString :: Pokeable s ptr => SBS.ShortByteString -> Poke s ptr
-shortByteString (SBS.SBS ba#) = byteArray# ba# 0
-
-text :: Pokeable s ptr => T.Text -> Poke s ptr
-text (T.Text (A.ByteArray ba#) os _len) = byteArray# ba# os
-
--- TODO adapted from utf8-string
-charUtf8 :: Pokeable s ptr => Char -> Poke s ptr
-charUtf8 = go . ord
- where
-  go oc
-   | oc <= 0x7f       = w8 $ fromIntegral oc
-
-   | oc <= 0x7ff      =    w8 (fromIntegral (0xc0 + (oc `shiftR` 6)))
-                        <> w8 (fromIntegral (0x80 + oc .&. 0x3f))
-
-   | oc <= 0xffff     =    w8 (fromIntegral (0xe0 + (oc `shiftR` 12)))
-                        <> w8 (fromIntegral (0x80 + ((oc `shiftR` 6) .&. 0x3f)))
-                        <> w8 (fromIntegral (0x80 + oc .&. 0x3f))
-   | otherwise        =    w8 (fromIntegral (0xf0 + (oc `shiftR` 18)))
-                        <> w8 (fromIntegral (0x80 + ((oc `shiftR` 12) .&. 0x3f)))
-                        <> w8 (fromIntegral (0x80 + ((oc `shiftR` 6) .&. 0x3f)))
-                        <> w8 (fromIntegral (0x80 + oc .&. 0x3f))
-{-# INLINE charUtf8 #-}

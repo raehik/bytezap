@@ -16,8 +16,10 @@ build-type:     Simple
 
 library
   exposed-modules:
+      Bytezap
       Bytezap.Poke
       Bytezap.Pokeable
+      Raehik.Compat.Data.Int.ByteSwap
       Raehik.Compat.GHC.Exts.GHC908MemcpyPrimops
       Raehik.Compat.GHC.Exts.GHC910UnalignedPrimops
   other-modules:

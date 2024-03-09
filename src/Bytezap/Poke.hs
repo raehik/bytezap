@@ -38,19 +38,31 @@ instance Monoid (Poke s (MutableByteArray# s)) where
     {-# INLINE mempty #-}
     mempty = Poke $ \_base# os# s# -> (# s#, os# #)
 
-runPokeBS :: Int -> Poke RealWorld Addr# -> BS.ByteString
-runPokeBS len = BS.unsafeCreate len . wrapIO
-{-# INLINE runPokeBS #-}
+-- | Execute a 'Poke' at a fresh 'BS.ByteString' of the given length.
+unsafeRunPokeBS :: Int -> Poke RealWorld Addr# -> BS.ByteString
+unsafeRunPokeBS len = BS.unsafeCreate len . wrapIO
+{-# INLINE unsafeRunPokeBS #-}
 
+-- TODO check if below generates same core
+--wrapIO f p = void (wrapIOUptoN f p)
 wrapIO :: Poke RealWorld Addr# -> Ptr Word8 -> IO ()
-wrapIO (Poke p) (Ptr addr#) =
-    IO (\s# -> case p addr# 0# s# of (# s'#, _os'# #) -> (# s'#, () #))
+wrapIO (Poke p) (Ptr addr#) = IO $ \s# ->
+    case p addr# 0# s# of (# s'#, _len# #) -> (# s'#, () #)
 {-# INLINE wrapIO #-}
 
--- Int >= 0 or we fking explode
-runPokeSBS :: Int -> (forall s. Poke s (MutableByteArray# s)) -> SBS.ShortByteString
-runPokeSBS len p = sbsUnsafeCreate len (wrapST p)
-{-# INLINE runPokeSBS #-}
+unsafeRunPokeBSUptoN :: Int -> Poke RealWorld Addr# -> BS.ByteString
+unsafeRunPokeBSUptoN len = BS.unsafeCreateUptoN len . wrapIOUptoN
+{-# INLINE unsafeRunPokeBSUptoN #-}
+
+wrapIOUptoN :: Poke RealWorld Addr# -> Ptr Word8 -> IO Int
+wrapIOUptoN (Poke p) (Ptr addr#) = IO $ \s# ->
+    case p addr# 0# s# of (# s'#, len# #) -> (# s'#, I# len# #)
+{-# INLINE wrapIOUptoN #-}
+
+-- | Execute a 'Poke' at a fresh 'SBS.ShortByteString' of the given length.
+unsafeRunPokeSBS :: Int -> (forall s. Poke s (MutableByteArray# s)) -> SBS.ShortByteString
+unsafeRunPokeSBS len p = sbsUnsafeCreate len (wrapST p)
+{-# INLINE unsafeRunPokeSBS #-}
 
 -- TODO they don't export this >:( also removed the >=0 len assert
 sbsUnsafeCreate
@@ -63,81 +75,19 @@ sbsUnsafeCreate len fill = runST $ do
 
 -- TODO this neither
 unsafeFreezeByteArray :: MutableByteArray s -> ST s ByteArray
-unsafeFreezeByteArray (MutableByteArray mba#) =
-    ST $ \s -> case unsafeFreezeByteArray# mba# s of
-                 (# s', ba# #) -> (# s', ByteArray ba# #)
+unsafeFreezeByteArray (MutableByteArray mba#) = ST $ \s ->
+    case unsafeFreezeByteArray# mba# s of
+      (# s', ba# #) -> (# s', ByteArray ba# #)
+{-# INLINE unsafeFreezeByteArray #-}
 
 -- TODO aaaand this neither
 unsafeNewByteArray :: Int -> ST s (MutableByteArray s)
-unsafeNewByteArray len@(I# len#) = ST $ \s ->
+unsafeNewByteArray _len@(I# len#) = ST $ \s ->
     case newByteArray# len# s of
       (# s', mba# #) -> (# s', MutableByteArray mba# #)
+{-# INLINE unsafeNewByteArray #-}
 
 wrapST :: Poke s (MutableByteArray# s) -> MutableByteArray s -> ST s ()
 wrapST (Poke p) (MutableByteArray mba#) = ST $ \s# ->
-    case p mba# 0# s# of (# s'#, _os# #) -> (# s'#, () #)
-
-{-
-
--- | Construct a 'Poke'.
-poke :: Poke# s a -> Poke s a
-poke = Poke
-{-# INLINE poke #-}
-
-runPokeBSUptoN :: Int -> Poke RealWorld -> BS.ByteString
-runPokeBSUptoN len = BS.unsafeCreateUptoN len . wrapIOUptoN
-{-# INLINE runPokeBSUptoN #-}
-
-wrapIOUptoN :: Poke RealWorld -> Ptr Word8 -> IO Int
-wrapIOUptoN (Poke p) (Ptr addr#) = IO $ \st# ->
-    case p addr# st# of
-      (# st'#, addr'# #) -> (# st'#, I# (addr'# `minusAddr#` addr#) #)
-{-# INLINE wrapIOUptoN #-}
-
--- | Allocate a buffer of the given size and run a 'Poke' over it.
---
--- The 'Poke' must fill the buffer exactly. If it goes under, you should get
--- some random garbage at the end. If it goes over, your computer will probably
--- explode.
-runPoke :: Int -> Poke s -> B.ByteString
-runPoke len = B.unsafeCreate len . wrapPoke
-{-# INLINE runPoke #-}
-
-wrapPoke :: Poke -> Ptr Word8 -> IO ()
-wrapPoke (Poke p) (Ptr addr#) =
-    IO (\st# -> case p addr# st# of (# l, _r #) -> (# l, () #))
-{-# INLINE wrapPoke #-}
-
--- | Instructions on how to perform a sized write.
---
--- The 'Poke' in 'writePoke' must write the _exact_ number of bytes specified in
--- 'writeSize'. Otherwise, your computer explodes.
-data Write = Write
-  { writeSize :: {-# UNPACK #-} !Int
-  , writePoke :: !Poke -- unpack unusable TODO is strict good or not here
-  }
-
--- | Construct a 'Write'.
-write :: Int -> Poke# -> Write
-write len p = Write len (Poke p)
-{-# INLINE write #-}
-
--- | Sequence the 'Poke's, sum the sizes.
-instance Semigroup Write where
-    -- TODO feels like this might be INLINE[1] or even INLINE[0]?
-    {-# INLINE (<>) #-}
-    Write ll lp <> Write rl rp = Write (ll + rl) (lp <> rp)
-
--- | The empty 'Write' is the empty 'Poke', which writes zero bytes.
-instance Monoid Write where
-    {-# INLINE mempty #-}
-    mempty = Write 0 mempty
-
--- | Serialize and show the resulting ByteString.
-instance Show Write where showsPrec p = showsPrec p . runWrite
-
-runWrite :: Write -> B.ByteString
-runWrite (Write len p) = runPoke len p
-{-# INLINE runWrite #-}
-
--}
+    case p mba# 0# s# of (# s'#, _len# #) -> (# s'#, () #)
+{-# INLINE wrapST #-}
