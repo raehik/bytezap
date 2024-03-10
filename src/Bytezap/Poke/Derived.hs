@@ -3,7 +3,7 @@
 -- for WORDS_BIGENDIAN (I think)
 #include "MachDeps.h"
 
-module Bytezap.Derived where
+module Bytezap.Poke.Derived where
 
 import Bytezap.Pokeable
 import Bytezap.Poke
@@ -84,16 +84,22 @@ i64le = i64
 i64be = i64 . byteSwapI64
 #endif
 
+-- | Poke a 'SBS.ShortByteString'.
 shortByteString
     :: Pokeable s (ptr :: TYPE rr) => SBS.ShortByteString -> Poke s ptr
 shortByteString (SBS.SBS ba#) = byteArray# ba# 0
+{-# INLINE shortByteString #-}
 
+-- | Poke a 'T.Text'.
 text :: Pokeable s (ptr :: TYPE rr) => T.Text -> Poke s ptr
 text (T.Text (A.ByteArray ba#) os _len) = byteArray# ba# os
+{-# INLINE text #-}
 
--- TODO adapted from utf8-string
-charUtf8 :: Pokeable s (ptr :: TYPE rr) => Char -> Poke s ptr
-charUtf8 = go . ord
+-- | Poke a 'Char'.
+--
+-- Adapted from utf8-string.
+char :: Pokeable s (ptr :: TYPE rr) => Char -> Poke s ptr
+char = go . ord
  where
   go :: Pokeable s (ptr :: TYPE rr) => Int -> Poke s ptr
   go oc
@@ -109,16 +115,24 @@ charUtf8 = go . ord
                         <> w8 (fromIntegral (0x80 + ((oc `shiftR` 12) .&. 0x3f)))
                         <> w8 (fromIntegral (0x80 + ((oc `shiftR` 6) .&. 0x3f)))
                         <> w8 (fromIntegral (0x80 + oc .&. 0x3f))
-{-# INLINE charUtf8 #-}
+{-# INLINE char #-}
 
--- might have to be careful on strictness here. but there's no tail recursive
--- option since it'd require binding a ptr, which we can't do due to TYPE rr.
--- and if you simply expand the monoidal ops here, you get the tail call ver :/
-pokeIndexed
-    :: Pokeable s (ptr :: TYPE rr)
+-- | @unsafePokeIndexed pokeAt off n@ performs @n@ indexed pokes starting from
+--   @off@.
+--
+-- Does not check bounds. Largely intended for bytewise pokes where some work
+-- needs to be performed for each byte (e.g. escaping text and poking inline).
+unsafePokeIndexed
+    :: Monoid (Poke s (ptr :: TYPE rr))
     => (Int -> Poke s ptr) -> Int -> Int -> Poke s ptr
-pokeIndexed pokeAt len off = go off
+-- no tail recursive option since it'd require binding a ptr, which we can't do
+-- due to TYPE rr.
+-- if you simply expand the monoidal ops here, you get the tail call ver. but
+-- like, will GHC be able to do that?
+-- hoping INLINE is good enough. but maybe need to check strictness.
+unsafePokeIndexed pokeAt off n = go off
   where
     go i | i >= iend = mempty
          | otherwise = pokeAt i <> go (i+1)
-    iend = off + len
+    iend = off + n
+{-# INLINE unsafePokeIndexed #-}

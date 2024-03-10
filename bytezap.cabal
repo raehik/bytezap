@@ -17,13 +17,16 @@ build-type:     Simple
 library
   exposed-modules:
       Bytezap
-      Bytezap.Derived
-      Bytezap.Json
       Bytezap.Poke
+      Bytezap.Poke.Derived
+      Bytezap.Poke.Json
+      Bytezap.Poke.KnownLen
       Bytezap.Pokeable
+      Bytezap.Write
       Raehik.Compat.Data.Int.ByteSwap
       Raehik.Compat.GHC.Exts.GHC908MemcpyPrimops
       Raehik.Compat.GHC.Exts.GHC910UnalignedPrimops
+      Util.TypeNats
   other-modules:
       Paths_bytezap
   hs-source-dirs:

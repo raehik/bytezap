@@ -215,3 +215,16 @@ instance Pokeable s (MutableByteArray# s) where
         in  case copyByteArray# ba# baos# base# os# len# s# of
               s'# -> (# s'#, os# +# len# #)
     {-# INLINE byteArray# #-}
+
+{- Here's a helper for boxed instances:
+
+viaAddr# :: Pokeable s Addr# => (a -> Poke s Addr#) -> a -> Poke s (Ptr Word8)
+viaAddr# pokeA a = Poke $ \(Ptr base#) os# s# -> (unPoke (pokeA a)) base# os# s#
+
+instance Pokeable RealWorld (Ptr Word8) where
+    {-# INLINE w8 #-}
+    w8 = viaAddr# w8
+
+We could use Contravariant.contramap, but it requires boxed values.
+
+-}

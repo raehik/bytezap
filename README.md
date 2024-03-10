@@ -1,5 +1,5 @@
 # bytezap
-Build bytestrings with zero intermediate allocation.
+Build strict bytestrings with zero intermediate allocation.
 
 ## Why?
 Most binary serialization libraries tend towards a model where the serializer

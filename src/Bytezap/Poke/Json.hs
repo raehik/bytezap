@@ -1,10 +1,10 @@
-module Bytezap.Json where
+module Bytezap.Poke.Json where
 
 import Data.Word
 import Data.Text.Internal qualified as T
 import Data.Text.Array qualified as A
 
-import Bytezap.Derived ( pokeIndexed )
+import Bytezap.Poke.Derived ( unsafePokeIndexed )
 import Bytezap.Poke
 import Bytezap.Pokeable
 
@@ -32,7 +32,7 @@ escapeW8 w | w >= 0x80 = 1 -- all multibyte chars are unescaped
 
 pokeEscapedTextUnquoted :: Pokeable s (ptr :: TYPE rr) => T.Text -> Poke s ptr
 pokeEscapedTextUnquoted (T.Text arr off len) =
-    pokeIndexed (pokeEscapeW8 . A.unsafeIndex arr) len off
+    unsafePokeIndexed (pokeEscapeW8 . A.unsafeIndex arr) off len
 
 -- think we have to poke bytes here still thanks to endianness >:(
 pokeEscapeW8 :: Pokeable s (ptr :: TYPE rr) => Word8 -> Poke s ptr

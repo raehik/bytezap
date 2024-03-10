@@ -15,8 +15,30 @@ import Data.ByteString.Short qualified as SBS
 import GHC.ST ( ST(ST), runST )
 import Data.Array.Byte ( MutableByteArray(..), ByteArray(..) )
 
-type Poke# s (a :: TYPE rr) = a -> Int# -> State# s -> (# State# s, Int# #)
-newtype Poke s (a :: TYPE rr) = Poke { unPoke :: Poke# s a }
+import Data.Functor.Contravariant
+
+-- | Poke to an @Int#@ offset from a @ptr@, and return the new offset.
+--
+-- The @ptr@ may be a machine address (@Ptr Word8@, @Addr#@), or a GC-managed
+-- object (@MutableByteArray@, @MutableByteArray#@).
+type Poke# s (ptr :: TYPE rr) = ptr -> Int# -> State# s -> (# State# s, Int# #)
+
+-- | Poke newtype wrapper.
+newtype Poke s (ptr :: TYPE rr) = Poke { unPoke :: Poke# s ptr }
+
+-- | Pokes on boxed pointers are contravariant functors.
+instance Contravariant (Poke s) where
+    contramap f (Poke p) = Poke $ \base os# s# -> p (f base) os# s#
+
+-- | Sequence two 'Poke's left-to-right.
+instance Semigroup (Poke s ptr) where
+    {-# INLINE (<>) #-}
+    Poke l <> Poke r = Poke $ \base os# s# ->
+        case l base os# s# of (# s'#, os'# #) -> r base os'# s'#
+
+instance Monoid (Poke s ptr) where
+    {-# INLINE mempty #-}
+    mempty = Poke $ \_base# os# s# -> (# s#, os# #)
 
 -- | Sequence two 'Poke's left-to-right.
 instance Semigroup (Poke s Addr#) where
