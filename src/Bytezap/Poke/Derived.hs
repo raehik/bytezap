@@ -10,7 +10,9 @@ import Bytezap.Poke
 
 import Data.ByteString.Short qualified as SBS
 import Data.Text.Internal qualified as T
-import Data.Array.Byte qualified as A
+--import Data.Array.Byte qualified as A
+-- ^ text-2.1 and above
+import Data.Text.Array qualified as A
 import Data.Word
 import Data.Int
 import Raehik.Compat.Data.Int.ByteSwap

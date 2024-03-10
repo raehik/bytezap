@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-} -- for a bytestring version gate >:(
 {-# LANGUAGE UnboxedTuples #-}
 
 -- may as well export everything the interface is highly unsafe
@@ -94,7 +95,12 @@ sbsUnsafeCreate
 sbsUnsafeCreate len fill = runST $ do
     mba <- unsafeNewByteArray len
     fill mba
+#if MIN_VERSION_bytestring(0,12,0)
     SBS.ShortByteString <$> unsafeFreezeByteArray mba
+#else
+    ByteArray ba# <- unsafeFreezeByteArray mba
+    pure $ SBS.SBS ba#
+#endif
 {-# INLINE sbsUnsafeCreate #-}
 
 -- TODO this neither
