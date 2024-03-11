@@ -1,23 +1,23 @@
 # bytezap
 Build strict bytestrings with zero intermediate allocation.
 
+You probably want [fumieval/mason](https://github.com/fumieval/mason), which is
+much more flexible thanks to its buffered serialization design.
+
 ## Why?
 Most binary serialization libraries tend towards a model where the serializer
-itself handles allocation. In the plumbing, most serialization operations are
+itself handles allocation. In the plumbing, serialization operations are
 bracketed by a check to ensure the current buffer has enough space for the next
-operation; if not, a new buffer is allocated and serialization continues. (I
-sometimes refer to this as *buffered serialization*.)
+operation; if not, we obtain more space in some way, and serialization
+continues. This design is nice because we can _chunk_ the serializing:
 
-This design is effective with lazy bytestrings, where old buffers may be
-appended to the bytestring being built. For strict bytestrings, the old buffer
-must be copied over to the new one. (Or you create a lazy bytestring and squash
-it into a strict one afterwards, which is why many libraries only export a lazy
-serializer.)
+* for writing to a lazy bytestring, we can emit a new chunk and clear our buffer
+* for writing to a handle, we can write, flush and clear our buffer
+* for writing to a strict bytestring, we must grow our current buffer
 
-If we know the size of the serialized data before actually serializing it, we
-may allocate a single buffer with the required size upfront. This removes lots
-of the plumbing that otherwise goes on during buffered serialization. I tend to
-call this *unbuffered serialization*.
+But if we know the size of the serialized data _before serializing it_, we don't
+need those space checks, nor these intermediate steps. We may allocate a single
+buffer with the required size upfront, then use that as we like.
 
 This approach has advantages and disadvantages. The aim of bytezap is to find
 out what exactly those are, and hopefully provide a performance boost for
@@ -29,3 +29,23 @@ in cases where the final byte size is known upfront. It's too low level, too
 specific, and too easy to get wrong. Better to give in and do the extra
 bookkeeping every time, for a more general library, even if it does some wasted
 work for certain operations.
+
+## Pros
+* Unnecessarily fast.
+* Only one backend: serialize to bytestring. Since we don't chunk, we can't have
+  specialized file handle or socket backends.
+  * Slight fib: you may serialize to `ShortByteString` also.
+
+## Cons
+* Very limited: may only serialize types which we can know the serialized byte
+  length of. This should be known statically, located in a field of the type, or
+  cheap to compute.
+* Lots of very unsafe code here that should scare you. (Certainly does me.)
+
+## Problems
+* Do we really have to write a bytestring every time? Isn't there some low-level
+  write operation on handles that takes a `Ptr Word8 -> IO ()` and a length and
+  does the write directly...?
+  * I have a feeling there isn't, because it needs to be able to copy
+    chunk-by-chunk. See `fdWrite`, which is almost the lowest level of handle
+    copying.
