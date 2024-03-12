@@ -18,6 +18,8 @@ import Data.Array.Byte ( MutableByteArray(..), ByteArray(..) )
 
 import Data.Functor.Contravariant
 
+import Control.Monad ( void )
+
 -- | Poke to an @Int#@ offset from a @ptr@, and return the new offset.
 --
 -- The @ptr@ may be a machine address (@Ptr Word8@, @Addr#@), or a GC-managed
@@ -66,23 +68,20 @@ unsafeRunPokeBS :: Int -> Poke RealWorld Addr# -> BS.ByteString
 unsafeRunPokeBS len = BS.unsafeCreate len . wrapIO
 {-# INLINE unsafeRunPokeBS #-}
 
--- TODO check if below generates same core
---wrapIO f p = void (wrapIOUptoN f p)
 wrapIO :: Poke RealWorld Addr# -> Ptr Word8 -> IO ()
-wrapIO (Poke p) (Ptr addr#) = IO $ \s# ->
-    case p addr# 0# s# of (# s'#, _len# #) -> (# s'#, () #)
+wrapIO f p = void (wrapIOUptoN f p)
 {-# INLINE wrapIO #-}
+
+wrapIOUptoN :: Poke RealWorld Addr# -> Ptr Word8 -> IO Int
+wrapIOUptoN (Poke p) (Ptr addr#) = IO $ \s# ->
+    case p addr# 0# s# of (# s'#, len# #) -> (# s'#, I# len# #)
+{-# INLINE wrapIOUptoN #-}
 
 -- | Execute a 'Poke' at a fresh 'BS.ByteString' of the given maximum length.
 --   Does not reallocate if final size is less than estimated.
 unsafeRunPokeBSUptoN :: Int -> Poke RealWorld Addr# -> BS.ByteString
 unsafeRunPokeBSUptoN len = BS.unsafeCreateUptoN len . wrapIOUptoN
 {-# INLINE unsafeRunPokeBSUptoN #-}
-
-wrapIOUptoN :: Poke RealWorld Addr# -> Ptr Word8 -> IO Int
-wrapIOUptoN (Poke p) (Ptr addr#) = IO $ \s# ->
-    case p addr# 0# s# of (# s'#, len# #) -> (# s'#, I# len# #)
-{-# INLINE wrapIOUptoN #-}
 
 -- | Execute a 'Poke' at a fresh 'SBS.ShortByteString' of the given length.
 unsafeRunPokeSBS

@@ -1,9 +1,13 @@
 {-# LANGUAGE UndecidableInstances #-} -- for levity-polymorphic instances
 
 -- safe module, only export the safe bits (no @Write(..)@!!)
-module Bytezap.Write ( Write, runWriteBS, runWriteBSUptoN, runWriteSBS ) where
+module Bytezap.Write
+  ( Write, runWriteBS, runWriteBSUptoN, runWriteSBS, prim
+  ) where
 
 import Bytezap.Poke
+import Bytezap.Pokeable qualified as P
+import Raehik.Compat.Data.Primitive.Types
 import GHC.Exts
 
 import Data.ByteString qualified as BS
@@ -23,9 +27,6 @@ instance Monoid (Poke s ptr) => Monoid (Write s (ptr :: TYPE rr)) where
     {-# INLINE mempty #-}
     mempty = Write 0 mempty
 
--- | Serialize via ByteString and 'show' the result.
---instance Show (Write s ptr) where showsPrec p = showsPrec p . runWriteBS
-
 runWriteBS :: Write RealWorld Addr# -> BS.ByteString
 runWriteBS = runWriteWith unsafeRunPokeBS
 
@@ -42,3 +43,10 @@ runWriteWith
     -> Write s ptr
     -> a
 runWriteWith runPoke (Write size poke) = runPoke size poke
+
+prim
+    :: forall {rr} a ptr
+    .  (P.Pokeable (ptr :: TYPE rr), Prim' a)
+    => a
+    -> Write (P.PS ptr) ptr
+prim a = Write (sizeOf (undefined :: a)) (P.prim a)

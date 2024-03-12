@@ -6,6 +6,7 @@
 module Raehik.Compat.Data.Primitive.Types
   ( Prim'(..)
   , P.Prim(..)
+  , P.sizeOf
   ) where
 
 import Data.Primitive.Types qualified as P

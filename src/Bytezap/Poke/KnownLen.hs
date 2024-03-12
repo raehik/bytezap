@@ -1,8 +1,4 @@
-{-# LANGUAGE CPP #-}
-
--- this gets us our WORD_SIZE_IN_BITS CPP macro
-#include "MachDeps.h"
-
+-- | 'P.Poke's with type-level poke length.
 module Bytezap.Poke.KnownLen where
 
 import Bytezap.Poke
