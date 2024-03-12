@@ -85,7 +85,8 @@ wrapIOUptoN (Poke p) (Ptr addr#) = IO $ \s# ->
 {-# INLINE wrapIOUptoN #-}
 
 -- | Execute a 'Poke' at a fresh 'SBS.ShortByteString' of the given length.
-unsafeRunPokeSBS :: Int -> (forall s. Poke s (MutableByteArray# s)) -> SBS.ShortByteString
+unsafeRunPokeSBS
+    :: Int -> (forall s. Poke s (MutableByteArray# s)) -> SBS.ShortByteString
 unsafeRunPokeSBS len p = sbsUnsafeCreate len (wrapST p)
 {-# INLINE unsafeRunPokeSBS #-}
 

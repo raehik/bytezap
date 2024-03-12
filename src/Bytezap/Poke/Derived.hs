@@ -22,88 +22,90 @@ import GHC.Exts ( TYPE )
 
 {-# INLINE w16le #-}
 {-# INLINE w16be #-}
-w16le, w16be :: Pokeable s (ptr :: TYPE rr) => Word16 -> Poke s ptr
+w16le, w16be :: Pokeable (ptr :: TYPE rr) => Word16 -> Poke (PS ptr) ptr
 #ifdef WORDS_BIGENDIAN
-w16le = w16 . byteSwap16
-w16be = w16
+w16le = prim . byteSwap16
+w16be = prim
 #else
-w16le = w16
-w16be = w16 . byteSwap16
+w16le = prim
+w16be = prim . byteSwap16
 #endif
 
 {-# INLINE w32le #-}
 {-# INLINE w32be #-}
-w32le, w32be :: Pokeable s (ptr :: TYPE rr) => Word32 -> Poke s ptr
+w32le, w32be :: Pokeable (ptr :: TYPE rr) => Word32 -> Poke (PS ptr) ptr
 #ifdef WORDS_BIGENDIAN
-w32le = w32 . byteSwap32
-w32be = w32
+w32le = prim . byteSwap32
+w32be = prim
 #else
-w32le = w32
-w32be = w32 . byteSwap32
+w32le = prim
+w32be = prim . byteSwap32
 #endif
 
 {-# INLINE w64le #-}
 {-# INLINE w64be #-}
-w64le, w64be :: Pokeable s (ptr :: TYPE rr) => Word64 -> Poke s ptr
+w64le, w64be :: Pokeable (ptr :: TYPE rr) => Word64 -> Poke (PS ptr) ptr
 #ifdef WORDS_BIGENDIAN
-w64le = w64 . byteSwap64
-w64be = w64
+w64le = prim . byteSwap64
+w64be = prim
 #else
-w64le = w64
-w64be = w64 . byteSwap64
+w64le = prim
+w64be = prim . byteSwap64
 #endif
 
 {-# INLINE i16le #-}
 {-# INLINE i16be #-}
-i16le, i16be :: Pokeable s (ptr :: TYPE rr) => Int16 -> Poke s ptr
+i16le, i16be :: Pokeable (ptr :: TYPE rr) => Int16 -> Poke (PS ptr) ptr
 #ifdef WORDS_BIGENDIAN
-i16le = i16 . byteSwapI16
-i16be = i16
+i16le = prim . byteSwapI16
+i16be = prim
 #else
-i16le = i16
-i16be = i16 . byteSwapI16
+i16le = prim
+i16be = prim . byteSwapI16
 #endif
 
 {-# INLINE i32le #-}
 {-# INLINE i32be #-}
-i32le, i32be :: Pokeable s (ptr :: TYPE rr) => Int32 -> Poke s ptr
+i32le, i32be :: Pokeable (ptr :: TYPE rr) => Int32 -> Poke (PS ptr) ptr
 #ifdef WORDS_BIGENDIAN
-i32le = i32 . byteSwapI32
-i32be = i32
+i32le = prim . byteSwapI32
+i32be = prim
 #else
-i32le = i32
-i32be = i32 . byteSwapI32
+i32le = prim
+i32be = prim . byteSwapI32
 #endif
 
 {-# INLINE i64le #-}
 {-# INLINE i64be #-}
-i64le, i64be :: Pokeable s (ptr :: TYPE rr) => Int64 -> Poke s ptr
+i64le, i64be :: Pokeable (ptr :: TYPE rr) => Int64 -> Poke (PS ptr) ptr
 #ifdef WORDS_BIGENDIAN
-i64le = i64 . byteSwapI64
-i64be = i64
+i64le = prim . byteSwapI64
+i64be = prim
 #else
-i64le = i64
-i64be = i64 . byteSwapI64
+i64le = prim
+i64be = prim . byteSwapI64
 #endif
 
 -- | Poke a 'SBS.ShortByteString'.
 shortByteString
-    :: Pokeable s (ptr :: TYPE rr) => SBS.ShortByteString -> Poke s ptr
+    :: Pokeable (ptr :: TYPE rr) => SBS.ShortByteString -> Poke (PS ptr) ptr
 shortByteString (SBS.SBS ba#) = byteArray# ba# 0
 {-# INLINE shortByteString #-}
 
 -- | Poke a 'T.Text'.
-text :: Pokeable s (ptr :: TYPE rr) => T.Text -> Poke s ptr
+text :: Pokeable (ptr :: TYPE rr) => T.Text -> Poke (PS ptr) ptr
 text (T.Text (A.ByteArray ba#) os _len) = byteArray# ba# os
 {-# INLINE text #-}
 
 -- | Poke a 'Char'.
 --
 -- Adapted from utf8-string.
-char :: Pokeable s (ptr :: TYPE rr) => Char -> Poke s ptr
+char :: Pokeable (ptr :: TYPE rr) => Char -> Poke (PS ptr) ptr
 char = go . ord
  where
-  go :: Pokeable s (ptr :: TYPE rr) => Int -> Poke s ptr
+  w8 :: Pokeable (ptr :: TYPE rr) => Word8 -> Poke (PS ptr) ptr
+  w8 = prim
+  go :: Pokeable (ptr :: TYPE rr) => Int -> Poke (PS ptr) ptr
   go oc
    | oc <= 0x7f       = w8 $ fromIntegral oc
 

@@ -8,13 +8,11 @@ module Bytezap.Pokeable where
 
 import Bytezap.Poke
 import GHC.Exts
-import Raehik.Compat.GHC.Exts.GHC910UnalignedPrimops
 import Raehik.Compat.GHC.Exts.GHC908MemcpyPrimops
-import GHC.Word
-import GHC.Int
 
 import Data.ByteString.Internal qualified as BS
 import GHC.ForeignPtr ( ForeignPtr(..) )
+import Raehik.Compat.Data.Primitive.Types
 
 {- | Types that support direct, low-level "poking" operations, where values are
      pointers of some sort.
@@ -33,88 +31,36 @@ running the program.
 
 Notably, 'SBS.ShortByteString's may be created in 'Control.Monad.ST.ST'.
 -}
-class Monoid (Poke s ptr) => Pokeable s (ptr :: TYPE rr) where
-    w8   :: Word8  -> Poke s ptr
-    w16  :: Word16 -> Poke s ptr
-    w32  :: Word32 -> Poke s ptr
-    w64  :: Word64 -> Poke s ptr
-    i8   ::  Int8  -> Poke s ptr
-    i16  ::  Int16 -> Poke s ptr
-    i32  ::  Int32 -> Poke s ptr
-    i64  ::  Int64 -> Poke s ptr
-    int  ::  Int   -> Poke s ptr
-    word :: Word   -> Poke s ptr
+class Monoid (Poke (PS ptr) ptr) => Pokeable (ptr :: TYPE rr) where
+    -- | State token type.
+    --
+    -- This allows us to run in ST if our pointer type supports it (e.g.
+    -- @'MutableByteArray#' s'@.
+    type PS ptr
+
+    -- | Poke a type via its 'Prim' instance.
+    prim :: Prim' a => a -> Poke (PS ptr) ptr
 
     -- | Poke a 'BS.ByteString'.
-    byteString :: BS.ByteString        -> Poke s ptr
+    byteString :: BS.ByteString        -> Poke (PS ptr) ptr
 
     -- | Poke 'ByteArray#' starting from the given 'Int' offset.
-    byteArray# :: ByteArray#    -> Int -> Poke s ptr
+    byteArray# :: ByteArray#    -> Int -> Poke (PS ptr) ptr
 
-instance Pokeable RealWorld Addr# where
-    w8  (W8#  i#) = Poke $ \base# os# s# ->
-        case writeWord8OffAddr#         base# os# i# s# of
-          s'# -> (# s'#, os# +# 1# #)
-    {-# INLINE w8 #-}
+-- | 'prim' with reordered types for convenient visible type application
+prim'
+    :: forall {rr} a (ptr :: TYPE rr)
+    .  (Prim' a, Pokeable ptr) => a -> Poke (PS ptr) ptr
+prim' = prim
 
-    w16 (W16# i#) = Poke $ \base# os# s# ->
-        case writeWord8OffAddrAsWord16# base# os# i# s# of
-          s'# -> (# s'#, os# +# 2# #)
-    {-# INLINE w16 #-}
+instance Pokeable Addr# where
+    type PS Addr# = RealWorld
 
-    w32 (W32# i#) = Poke $ \base# os# s# ->
-        case writeWord8OffAddrAsWord32# base# os# i# s# of
-          s'# -> (# s'#, os# +# 4# #)
-    {-# INLINE w32 #-}
-
-    w64 (W64# i#) = Poke $ \base# os# s# ->
-        case writeWord8OffAddrAsWord64# base# os# i# s# of
-          s'# -> (# s'#, os# +# 8# #)
-    {-# INLINE w64 #-}
-
-    i8  (I8#  i#) = Poke $ \base# os# s# ->
-        case writeInt8OffAddr#          base# os# i# s# of
-          s'# -> (# s'#, os# +# 1# #)
-    {-# INLINE i8 #-}
-
-    i16 (I16# i#) = Poke $ \base# os# s# ->
-        case writeWord8OffAddrAsInt16#  base# os# i# s# of
-          s'# -> (# s'#, os# +# 2# #)
-    {-# INLINE i16 #-}
-
-    i32 (I32# i#) = Poke $ \base# os# s# ->
-        case writeWord8OffAddrAsInt32#  base# os# i# s# of
-          s'# -> (# s'#, os# +# 4# #)
-    {-# INLINE i32 #-}
-
-    i64 (I64# i#) = Poke $ \base# os# s# ->
-        case writeWord8OffAddrAsInt64#  base# os# i# s# of
-          s'# -> (# s'#, os# +# 8# #)
-    {-# INLINE i64 #-}
-
-#if WORD_SIZE_IN_BITS == 64
-    int  (I#  i#) = Poke $ \base# os# s# ->
-        case writeWord8OffAddrAsInt#    base# os# i# s# of
-          s'# -> (# s'#, os# +# 8# #)
-    {-# INLINE int #-}
-
-    word (W#  i#) = Poke $ \base# os# s# ->
-        case writeWord8OffAddrAsWord#   base# os# i# s# of
-          s'# -> (# s'#, os# +# 8# #)
-    {-# INLINE word #-}
-#elif WORD_SIZE_IN_BITS == 32
-    int  (I#  i#) = Poke $ \base# os# s# ->
-        case writeWord8OffAddrAsInt#    base# os# i# s# of
-          s'# -> (# s'#, os# +# 4# #)
-    {-# INLINE int #-}
-
-    word (W#  i#) = Poke $ \base# os# s# ->
-        case writeWord8OffAddrAsWord#   base# os# i# s# of
-          s'# -> (# s'#, os# +# 4# #)
-    {-# INLINE word #-}
-#else
-#error unsupported platform (not 32/64 bit)
-#endif
+    prim :: forall a s. Prim' a => a -> Poke s Addr#
+    prim a = Poke $ \base# os# s# ->
+        case writeWord8OffAddrAs# base# os# a s# of
+          s'# -> (# s'#, os# +# sizeOf# (undefined :: a) #)
+    {-# INLINE prim #-}
 
     -- | This function forces us to set our state token to 'RealWorld'.
     --   I don't really get why! But seems sensible enough.
@@ -129,70 +75,14 @@ instance Pokeable RealWorld Addr# where
               s'# -> (# s'#, os# +# len# #)
     {-# INLINE byteArray# #-}
 
-instance Pokeable s (MutableByteArray# s) where
-    w8  (W8#  i#) = Poke $ \base# os# s# ->
-        case writeWord8Array#           base# os# i# s# of
-          s'# -> (# s'#, os# +# 1# #)
-    {-# INLINE w8 #-}
+instance Pokeable (MutableByteArray# s) where
+    type PS (MutableByteArray# s) = s
 
-    w16 (W16# i#) = Poke $ \base# os# s# ->
-        case writeWord8ArrayAsWord16#   base# os# i# s# of
-          s'# -> (# s'#, os# +# 2# #)
-    {-# INLINE w16 #-}
-
-    w32 (W32# i#) = Poke $ \base# os# s# ->
-        case writeWord8ArrayAsWord32#   base# os# i# s# of
-          s'# -> (# s'#, os# +# 4# #)
-    {-# INLINE w32 #-}
-
-    w64 (W64# i#) = Poke $ \base# os# s# ->
-        case writeWord8ArrayAsWord64#   base# os# i# s# of
-          s'# -> (# s'#, os# +# 8# #)
-    {-# INLINE w64 #-}
-
-    i8  (I8#  i#) = Poke $ \base# os# s# ->
-        case writeInt8Array#            base# os# i# s# of
-          s'# -> (# s'#, os# +# 1# #)
-    {-# INLINE i8 #-}
-
-    i16 (I16# i#) = Poke $ \base# os# s# ->
-        case writeWord8ArrayAsInt16#    base# os# i# s# of
-          s'# -> (# s'#, os# +# 2# #)
-    {-# INLINE i16 #-}
-
-    i32 (I32# i#) = Poke $ \base# os# s# ->
-        case writeWord8ArrayAsInt32#    base# os# i# s# of
-          s'# -> (# s'#, os# +# 4# #)
-    {-# INLINE i32 #-}
-
-    i64 (I64# i#) = Poke $ \base# os# s# ->
-        case writeWord8ArrayAsInt64#    base# os# i# s# of
-          s'# -> (# s'#, os# +# 8# #)
-    {-# INLINE i64 #-}
-
-#if WORD_SIZE_IN_BITS == 64
-    int  (I#  i#) = Poke $ \base# os# s# ->
-        case writeWord8ArrayAsInt#      base# os# i# s# of
-          s'# -> (# s'#, os# +# 8# #)
-    {-# INLINE int #-}
-
-    word (W#  i#) = Poke $ \base# os# s# ->
-        case writeWord8ArrayAsWord#     base# os# i# s# of
-          s'# -> (# s'#, os# +# 8# #)
-    {-# INLINE word #-}
-#elif WORD_SIZE_IN_BITS == 32
-    int  (I#  i#) = Poke $ \base# os# s# ->
-        case writeWord8ArrayAsInt#      base# os# i# s# of
-          s'# -> (# s'#, os# +# 4# #)
-    {-# INLINE int #-}
-
-    word (W#  i#) = Poke $ \base# os# s# ->
-        case writeWord8ArrayAsWord#     base# os# i# s# of
-          s'# -> (# s'#, os# +# 4# #)
-    {-# INLINE word #-}
-#else
-#error unsupported platform (not 32/64 bit)
-#endif
+    prim :: forall a s'. Prim' a => a -> Poke s' (MutableByteArray# s')
+    prim a = Poke $ \base# os# s# ->
+        case writeWord8ByteArrayAs# base# os# a s# of
+          s'# -> (# s'#, os# +# sizeOf# (undefined :: a) #)
+    {-# INLINE prim #-}
 
     -- we need to touch here, but it only goes polymorphic in GHC 9.8.
     -- primitive seems to do this, so inoritaimu haha
