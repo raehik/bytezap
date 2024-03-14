@@ -20,3 +20,7 @@ byteSwapI32 (I32# i#) = I32# (word32ToInt32# (wordToWord32# (byteSwap32# (word32
 byteSwapI64 :: Int64 -> Int64
 byteSwapI64 (I64# i#) = I64# (word64ToInt64# (byteSwap64# (int64ToWord64# i#)))
 {-# INLINE byteSwapI64 #-}
+
+byteSwapI :: Int -> Int
+byteSwapI (I# i#) = I# (word2Int# (byteSwap# (int2Word# i#)))
+{-# INLINE byteSwapI #-}

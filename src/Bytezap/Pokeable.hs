@@ -38,13 +38,13 @@ class Monoid (Poke (PS ptr) ptr) => Pokeable (ptr :: TYPE rr) where
     -- @'MutableByteArray#' s'@.
     type PS ptr
 
-    -- | Poke a type via its 'Prim' instance.
+    -- | Poke a type via its 'Prim'' instance.
     prim :: Prim' a => a -> Poke (PS ptr) ptr
 
     -- | Poke a 'BS.ByteString'.
     byteString :: BS.ByteString        -> Poke (PS ptr) ptr
 
-    -- | Poke 'ByteArray#' starting from the given 'Int' offset.
+    -- | Poke a 'ByteArray#' starting from the given 'Int' offset.
     byteArray# :: ByteArray#    -> Int -> Poke (PS ptr) ptr
 
 -- | 'prim' with reordered types for convenient visible type application
@@ -100,6 +100,8 @@ instance Pokeable (MutableByteArray# s) where
               s''# -> (# unsafeCoerce# s''#, os# +# len# #)
 -}
 
+    -- copyByteArray# must not take the same array in different states.
+    -- the runner handles the destination for us so this is fairly impossible
     byteArray# ba# (I# baos#) = Poke $ \base# os# s# ->
         let len# = sizeofByteArray# ba#
         in  case copyByteArray# ba# baos# base# os# len# s# of

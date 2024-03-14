@@ -39,13 +39,27 @@ class P.Prim a => Prim' a where
 
 instance Prim' Word8 where
     type SizeOf Word8 = SIZEOF_WORD8
-    writeWord8OffAddrAs# base# os# (W8# i#) s# =
-        writeWord8OffAddr# base# os# i# s#
+    indexWord8ByteArrayAs# = P.indexByteArray#
+    readWord8ByteArrayAs#  = P.readByteArray#
+    writeWord8ByteArrayAs# = P.writeByteArray#
+    indexWord8OffAddrAs#   = P.indexOffAddr#
+    readWord8OffAddrAs#    = P.readOffAddr#
+    writeWord8OffAddrAs#   = P.writeOffAddr#
 
 instance Prim' Word16 where
     type SizeOf Word16 = SIZEOF_WORD16
-    writeWord8OffAddrAs# base# os# (W16# i#) s# =
-        writeWord8OffAddrAsWord16# base# os# i# s#
+    indexWord8ByteArrayAs# arr# os# = W16# (indexWord8ArrayAsWord16# arr# os#)
+    readWord8ByteArrayAs# arr# os# = \s0 ->
+        case readWord8ArrayAsWord16# arr# os# s0 of
+          (# s1, w# #) -> (# s1, W16# w# #)
+    writeWord8ByteArrayAs# arr# os# (W16# w#) = \s0 ->
+        writeWord8ArrayAsWord16# arr# os# w# s0
+    indexWord8OffAddrAs# addr# os# = W16# (indexWord8OffAddrAsWord16# addr# os#)
+    readWord8OffAddrAs# addr# os# = \s0 ->
+        case readWord8OffAddrAsWord16# addr# os# s0 of
+          (# s1, w# #) -> (# s1, W16# w# #)
+    writeWord8OffAddrAs# addr# os# (W16# w#) s# =
+        writeWord8OffAddrAsWord16# addr# os# w# s#
 
 instance Prim' Word32 where
     type SizeOf Word32 = SIZEOF_WORD32
@@ -59,8 +73,13 @@ instance Prim' Word64 where
 
 instance Prim' Int8 where
     type SizeOf Int8 = SIZEOF_INT8
-    writeWord8OffAddrAs# base# os# (I8# i#) s# =
-        writeInt8OffAddr# base# os# i# s#
+    indexWord8ByteArrayAs# = P.indexByteArray#
+    readWord8ByteArrayAs#  = P.readByteArray#
+    writeWord8ByteArrayAs# = P.writeByteArray#
+    indexWord8OffAddrAs#   = P.indexOffAddr#
+    readWord8OffAddrAs#    = P.readOffAddr#
+    writeWord8OffAddrAs#   = P.writeOffAddr#
+
 
 instance Prim' Int16 where
     type SizeOf Int16 = SIZEOF_INT16
