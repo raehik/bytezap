@@ -12,6 +12,7 @@ import               Data.Int
 import Raehik.Compat.Data.Int.ByteSwap
 import GHC.ByteOrder
 import Data.Kind
+import GHC.Float
 
 -- | Boxed types which permit reversing byte order ("byte swapping").
 class ByteSwap a where byteSwap :: a -> a
@@ -24,56 +25,63 @@ instance ByteSwap  Int32 where byteSwap = byteSwapI32
 instance ByteSwap  Int64 where byteSwap = byteSwapI64
 instance ByteSwap  Int   where byteSwap = byteSwapI
 
+-- I think these two are well-founded. No tests currently though.
+instance ByteSwap Float  where
+    byteSwap = castWord32ToFloat  . byteSwap . castFloatToWord32
+instance ByteSwap Double where
+    byteSwap = castWord64ToDouble . byteSwap . castDoubleToWord64
+
 newtype ByteOrdered (end :: ByteOrder) a = ByteOrdered
   { unByteOrdered :: a }
 
 -- | Newtype for easier instance derivation.
-newtype PrimByteOrdered a = PrimByteOrdered { unPrimByteOrdered :: a }
+newtype PrimByteSwapped a = PrimByteSwapped { unPrimByteSwapped :: a }
 
-instance (Prim a, ByteSwap a) => Prim (PrimByteOrdered a) where
-    sizeOf# (PrimByteOrdered a) = sizeOf# a
-    alignment# (PrimByteOrdered a) = alignment# a
+-- | Prim instance where we byte swap at accesses.
+instance (Prim a, ByteSwap a) => Prim (PrimByteSwapped a) where
+    sizeOf# (PrimByteSwapped a) = sizeOf# a
+    alignment# (PrimByteSwapped a) = alignment# a
     indexByteArray# arr# i# =
-        PrimByteOrdered (byteSwap (indexByteArray# arr# i#))
+        PrimByteSwapped (byteSwap (indexByteArray# arr# i#))
     readByteArray# arr# i# = \s0 ->
         case readByteArray# arr# i# s0 of
-          (# s1, a #) -> (# s1, PrimByteOrdered (byteSwap a) #)
-    writeByteArray# arr# i# (PrimByteOrdered a) = \s0 ->
+          (# s1, a #) -> (# s1, PrimByteSwapped (byteSwap a) #)
+    writeByteArray# arr# i# (PrimByteSwapped a) = \s0 ->
         writeByteArray# arr# i# (byteSwap a) s0
-    setByteArray# arr# i# len# (PrimByteOrdered a) = \s0 ->
+    setByteArray# arr# i# len# (PrimByteSwapped a) = \s0 ->
         setByteArray# arr# i# len# (byteSwap a) s0
     indexOffAddr# addr# i# =
-        PrimByteOrdered (byteSwap (indexOffAddr# addr# i#))
+        PrimByteSwapped (byteSwap (indexOffAddr# addr# i#))
     readOffAddr# addr# i# = \s0 ->
         case readOffAddr# addr# i# s0 of
-          (# s1, a #) -> (# s1, PrimByteOrdered (byteSwap a) #)
-    writeOffAddr# addr# i# (PrimByteOrdered a) = \s0 ->
+          (# s1, a #) -> (# s1, PrimByteSwapped (byteSwap a) #)
+    writeOffAddr# addr# i# (PrimByteSwapped a) = \s0 ->
         writeOffAddr# addr# i# (byteSwap a) s0
-    setOffAddr# arr# i# len# (PrimByteOrdered a) = \s0 ->
+    setOffAddr# arr# i# len# (PrimByteSwapped a) = \s0 ->
         setOffAddr# arr# i# len# (byteSwap a) s0
 
-instance (Prim' a, ByteSwap a) => Prim' (PrimByteOrdered a) where
-    type SizeOf (PrimByteOrdered a) = SizeOf a
+instance (Prim' a, ByteSwap a) => Prim' (PrimByteSwapped a) where
+    type SizeOf (PrimByteSwapped a) = SizeOf a
     indexWord8ByteArrayAs# arr# os# =
-        PrimByteOrdered (byteSwap (indexWord8ByteArrayAs# arr# os#))
+        PrimByteSwapped (byteSwap (indexWord8ByteArrayAs# arr# os#))
     readWord8ByteArrayAs# arr# os# = \s0 ->
         case readWord8ByteArrayAs# arr# os# s0 of
-          (# s1, a #) -> (# s1, PrimByteOrdered (byteSwap a) #)
-    writeWord8ByteArrayAs# arr# os# (PrimByteOrdered a) = \s0 ->
+          (# s1, a #) -> (# s1, PrimByteSwapped (byteSwap a) #)
+    writeWord8ByteArrayAs# arr# os# (PrimByteSwapped a) = \s0 ->
         writeWord8ByteArrayAs# arr# os# (byteSwap a) s0
     indexWord8OffAddrAs# addr# os# =
-        PrimByteOrdered (byteSwap (indexWord8OffAddrAs# addr# os#))
+        PrimByteSwapped (byteSwap (indexWord8OffAddrAs# addr# os#))
     readWord8OffAddrAs# addr# os# = \s0 ->
         case readWord8OffAddrAs# addr# os# s0 of
-          (# s1, a #) -> (# s1, PrimByteOrdered (byteSwap a) #)
-    writeWord8OffAddrAs# addr# os# (PrimByteOrdered a) = \s0 ->
+          (# s1, a #) -> (# s1, PrimByteSwapped (byteSwap a) #)
+    writeWord8OffAddrAs# addr# os# (PrimByteSwapped a) = \s0 ->
         writeOffAddr# addr# os# (byteSwap a) s0
 
 -- idk why I gotta (a :: Type) why is GHC going kind-polymorphic there lol
 #if defined(WORDS_BIGENDIAN)
-deriving via (PrimByteOrdered a) instance
+deriving via (PrimByteSwapped a) instance
     (Prim  a, ByteSwap a) => Prim  (ByteOrdered 'LittleEndian a)
-deriving via (PrimByteOrdered a) instance
+deriving via (PrimByteSwapped a) instance
     (Prim' a, ByteSwap a) => Prim' (ByteOrdered 'LittleEndian a)
 deriving via (a :: Type) instance
     Prim  a => Prim  (ByteOrdered 'BigEndian a)
@@ -84,8 +92,8 @@ deriving via (a :: Type) instance
     Prim  a => Prim  (ByteOrdered 'LittleEndian a)
 deriving via (a :: Type) instance
     Prim' a => Prim' (ByteOrdered 'LittleEndian a)
-deriving via (PrimByteOrdered a) instance
+deriving via (PrimByteSwapped a) instance
     (Prim  a, ByteSwap a) => Prim  (ByteOrdered 'BigEndian a)
-deriving via (PrimByteOrdered a) instance
+deriving via (PrimByteSwapped a) instance
     (Prim' a, ByteSwap a) => Prim' (ByteOrdered 'BigEndian a)
 #endif
