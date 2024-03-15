@@ -5,6 +5,7 @@
 module Bytezap.Poke where
 
 import GHC.Exts
+import Raehik.Compat.GHC.Exts.GHC908MemcpyPrimops
 
 import GHC.IO
 import Data.Word
@@ -12,112 +13,61 @@ import Data.Word
 import Data.ByteString qualified as BS
 import Data.ByteString.Internal qualified as BS
 
-import Data.ByteString.Short qualified as SBS
-import GHC.ST ( ST(ST), runST )
-import Data.Array.Byte ( MutableByteArray(..), ByteArray(..) )
-
-import Data.Functor.Contravariant
-
 import Control.Monad ( void )
 
--- | Poke to an @Int#@ offset from a @ptr@, and return the new offset.
---
--- The @ptr@ may be a machine address (@Ptr Word8@, @Addr#@), or a GC-managed
--- object (@MutableByteArray@, @MutableByteArray#@).
-type Poke# s (ptr :: TYPE rr) = ptr -> Int# -> State# s -> (# State# s, Int# #)
+import Raehik.Compat.Data.Primitive.Types
+
+import GHC.ForeignPtr
+
+type Poke# s = Addr# -> Int# -> State# s -> (# State# s, Int# #)
 
 -- | Poke newtype wrapper.
-newtype Poke s (ptr :: TYPE rr) = Poke { unPoke :: Poke# s ptr }
-
--- | Pokes on boxed pointers are contravariant functors.
-instance Contravariant (Poke s) where
-    contramap f (Poke p) = Poke $ \base os# s# -> p (f base) os# s#
+newtype Poke s = Poke { unPoke :: Poke# s }
 
 -- | Sequence two 'Poke's left-to-right.
-instance Semigroup (Poke s ptr) where
-    {-# INLINE (<>) #-}
-    Poke l <> Poke r = Poke $ \base os# s# ->
-        case l base os# s# of (# s'#, os'# #) -> r base os'# s'#
+instance Semigroup (Poke s) where
+    Poke l <> Poke r = Poke $ \addr# os# s0 ->
+        case l addr# os# s0 of (# s1, os'# #) -> r addr# os'# s1
 
-instance Monoid (Poke s ptr) where
-    {-# INLINE mempty #-}
-    mempty = Poke $ \_base# os# s# -> (# s#, os# #)
-
--- | Sequence two 'Poke's left-to-right.
-instance Semigroup (Poke s Addr#) where
-    {-# INLINE (<>) #-}
-    Poke l <> Poke r = Poke $ \base# os# s# ->
-        case l base# os# s# of (# s'#, os'# #) -> r base# os'# s'#
-
--- | Sequence two 'Poke's left-to-right.
-instance Semigroup (Poke s (MutableByteArray# s)) where
-    {-# INLINE (<>) #-}
-    Poke l <> Poke r = Poke $ \base# os# s# ->
-        case l base# os# s# of (# s'#, os'# #) -> r base# os'# s'#
-
-instance Monoid (Poke s Addr#) where
-    {-# INLINE mempty #-}
-    mempty = Poke $ \_base# os# s# -> (# s#, os# #)
-
-instance Monoid (Poke s (MutableByteArray# s)) where
-    {-# INLINE mempty #-}
-    mempty = Poke $ \_base# os# s# -> (# s#, os# #)
+instance Monoid (Poke s) where
+    mempty = Poke $ \_addr# os# s0 -> (# s0, os# #)
 
 -- | Execute a 'Poke' at a fresh 'BS.ByteString' of the given length.
-unsafeRunPokeBS :: Int -> Poke RealWorld Addr# -> BS.ByteString
+unsafeRunPokeBS :: Int -> Poke RealWorld -> BS.ByteString
 unsafeRunPokeBS len = BS.unsafeCreate len . wrapIO
 {-# INLINE unsafeRunPokeBS #-}
 
-wrapIO :: Poke RealWorld Addr# -> Ptr Word8 -> IO ()
+wrapIO :: Poke RealWorld -> Ptr Word8 -> IO ()
 wrapIO f p = void (wrapIOUptoN f p)
 {-# INLINE wrapIO #-}
 
-wrapIOUptoN :: Poke RealWorld Addr# -> Ptr Word8 -> IO Int
-wrapIOUptoN (Poke p) (Ptr addr#) = IO $ \s# ->
-    case p addr# 0# s# of (# s'#, len# #) -> (# s'#, I# len# #)
+wrapIOUptoN :: Poke RealWorld -> Ptr Word8 -> IO Int
+wrapIOUptoN (Poke p) (Ptr addr#) = IO $ \s0 ->
+    case p addr# 0# s0 of (# s1, len# #) -> (# s1, I# len# #)
 {-# INLINE wrapIOUptoN #-}
 
 -- | Execute a 'Poke' at a fresh 'BS.ByteString' of the given maximum length.
 --   Does not reallocate if final size is less than estimated.
-unsafeRunPokeBSUptoN :: Int -> Poke RealWorld Addr# -> BS.ByteString
+unsafeRunPokeBSUptoN :: Int -> Poke RealWorld -> BS.ByteString
 unsafeRunPokeBSUptoN len = BS.unsafeCreateUptoN len . wrapIOUptoN
 {-# INLINE unsafeRunPokeBSUptoN #-}
 
--- | Execute a 'Poke' at a fresh 'SBS.ShortByteString' of the given length.
-unsafeRunPokeSBS
-    :: Int -> (forall s. Poke s (MutableByteArray# s)) -> SBS.ShortByteString
-unsafeRunPokeSBS len p = sbsUnsafeCreate len (wrapST p)
-{-# INLINE unsafeRunPokeSBS #-}
+-- | Poke a type via its 'Prim'' instance.
+prim :: forall a s. Prim' a => a -> Poke s
+prim a = Poke $ \addr# os# s0 ->
+    case writeWord8OffAddrAs# addr# os# a s0 of
+      s1 -> (# s1, os# +# sizeOf# (undefined :: a) #)
 
--- TODO they don't export this >:( also removed the >=0 len assert
-sbsUnsafeCreate
-    :: Int -> (forall s. MutableByteArray s -> ST s ()) -> SBS.ShortByteString
-sbsUnsafeCreate len fill = runST $ do
-    mba <- unsafeNewByteArray len
-    fill mba
-#if MIN_VERSION_bytestring(0,12,0)
-    SBS.ShortByteString <$> unsafeFreezeByteArray mba
-#else
-    ByteArray ba# <- unsafeFreezeByteArray mba
-    pure $ SBS.SBS ba#
-#endif
-{-# INLINE sbsUnsafeCreate #-}
+-- we reimplement withForeignPtr because it's too high level.
+-- keepAlive# has the wrong type before GHC 9.10, but it doesn't matter here
+-- because copyAddrToAddrNonOverlapping# forces RealWorld.
+byteString :: BS.ByteString -> Poke RealWorld
+byteString (BS.BS (ForeignPtr p# r) (I# len#)) = Poke $ \addr# os# s0 ->
+    keepAlive# r s0 $ \s1 ->
+        case copyAddrToAddrNonOverlapping# p# (addr# `plusAddr#` os#) len# s1 of
+          s2 -> (# s2, os# +# len# #)
 
--- TODO this neither
-unsafeFreezeByteArray :: MutableByteArray s -> ST s ByteArray
-unsafeFreezeByteArray (MutableByteArray mba#) = ST $ \s ->
-    case unsafeFreezeByteArray# mba# s of
-      (# s', ba# #) -> (# s', ByteArray ba# #)
-{-# INLINE unsafeFreezeByteArray #-}
-
--- TODO aaaand this neither
-unsafeNewByteArray :: Int -> ST s (MutableByteArray s)
-unsafeNewByteArray _len@(I# len#) = ST $ \s ->
-    case newByteArray# len# s of
-      (# s', mba# #) -> (# s', MutableByteArray mba# #)
-{-# INLINE unsafeNewByteArray #-}
-
-wrapST :: Poke s (MutableByteArray# s) -> MutableByteArray s -> ST s ()
-wrapST (Poke p) (MutableByteArray mba#) = ST $ \s# ->
-    case p mba# 0# s# of (# s'#, _len# #) -> (# s'#, () #)
-{-# INLINE wrapST #-}
+byteArray# :: ByteArray# -> Int# -> Int# -> Poke s
+byteArray# ba# baos# balen# = Poke $ \addr# os# s0 ->
+    case copyByteArrayToAddr# ba# baos# (addr# `plusAddr#` os#) balen# s0 of
+      s1 -> (# s1, os# +# balen# #)

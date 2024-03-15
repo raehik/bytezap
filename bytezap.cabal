@@ -22,7 +22,6 @@ library
       Bytezap.Poke.Derived.Endian
       Bytezap.Poke.Json
       Bytezap.Poke.KnownLen
-      Bytezap.Pokeable
       Bytezap.Write
       Raehik.Compat.Data.Int.ByteSwap
       Raehik.Compat.Data.Primitive.Types

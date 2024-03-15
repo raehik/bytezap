@@ -1,43 +1,28 @@
 -- | 'P.Poke's with type-level poke length.
 module Bytezap.Poke.KnownLen where
 
-import Bytezap.Poke
+import Bytezap.Poke qualified as P
 import GHC.TypeNats
 import Data.ByteString qualified as BS
-import Data.ByteString.Short qualified as SBS
 import GHC.Exts
 import Util.TypeNats ( natValInt )
 
-import Bytezap.Pokeable qualified as P
 import Raehik.Compat.Data.Primitive.Types
 
-newtype PokeKnownLen (len :: Natural) s (ptr :: TYPE rr) =
-    PokeKnownLen { unPokeKnownLen :: Poke s ptr }
+newtype PokeKnownLen (len :: Natural) s =
+    PokeKnownLen { unPokeKnownLen :: P.Poke s }
 
-mappend'
-    :: Semigroup (Poke s ptr)
-    => PokeKnownLen n     s (ptr :: TYPE rr)
-    -> PokeKnownLen m     s ptr
-    -> PokeKnownLen (n+m) s ptr
+mappend' :: PokeKnownLen n s -> PokeKnownLen m s -> PokeKnownLen (n+m) s
 mappend' (PokeKnownLen l) (PokeKnownLen r) = PokeKnownLen (l <> r)
 
-mempty' :: Monoid (Poke s ptr) => PokeKnownLen 0 s (ptr :: TYPE rr)
+mempty' :: PokeKnownLen 0 s
 mempty' = PokeKnownLen mempty
 
 runPokeKnownLenBS
     :: forall n. KnownNat n
-    => PokeKnownLen n RealWorld Addr#
+    => PokeKnownLen n RealWorld
     -> BS.ByteString
-runPokeKnownLenBS (PokeKnownLen p) = unsafeRunPokeBS (natValInt @n) p
+runPokeKnownLenBS (PokeKnownLen p) = P.unsafeRunPokeBS (natValInt @n) p
 
-runPokeKnownLenSBS
-    :: forall n. KnownNat n
-    => (forall s. PokeKnownLen n s (MutableByteArray# s))
-    -> SBS.ShortByteString
-runPokeKnownLenSBS p = unsafeRunPokeSBS (natValInt @n) (unPokeKnownLen p)
-
-prim
-    :: (P.Pokeable (ptr :: TYPE rr), Prim' a)
-    => a
-    -> PokeKnownLen (SizeOf a) (P.PS ptr) ptr
+prim :: Prim' a => a -> PokeKnownLen (SizeOf a) s
 prim = PokeKnownLen . P.prim

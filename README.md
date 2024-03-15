@@ -49,3 +49,12 @@ work for certain operations.
   * I have a feeling there isn't, because it needs to be able to copy
     chunk-by-chunk. See `fdWrite`, which is almost the lowest level of handle
     copying.
+
+## Non-features
+### Serialize to `ByteString` (pinned byte arrays) only
+No `ShortByteString`s, no writing directly to handles.
+
+(One _may_ support writing to `ShortByteString`s (unpinned byte arrays) by doing
+a bunch of class indirection. But it's a lot of extra work for a use case that I
+don't see as very popular at all. Check the Git history for an early
+implementation.)

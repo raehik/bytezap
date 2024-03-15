@@ -1,52 +1,39 @@
-{-# LANGUAGE UndecidableInstances #-} -- for levity-polymorphic instances
-
 -- safe module, only export the safe bits (no @Write(..)@!!)
 module Bytezap.Write
-  ( Write, runWriteBS, runWriteBSUptoN, runWriteSBS, prim
+  ( Write, runWriteBS, runWriteBSUptoN, prim
   ) where
 
-import Bytezap.Poke
-import Bytezap.Pokeable qualified as P
+import Bytezap.Poke qualified as P
 import Raehik.Compat.Data.Primitive.Types
 import GHC.Exts
 
 import Data.ByteString qualified as BS
-import Data.ByteString.Short qualified as SBS
 
 -- | A 'Poke' with the associated size it pokes.
-data Write s (ptr :: TYPE rr) = Write { size :: Int, poke :: Poke s ptr }
+data Write s = Write { size :: Int, poke :: P.Poke s }
 
 -- | Sequence the 'Poke's, sum the sizes.
-instance Semigroup (Poke s ptr) => Semigroup (Write s (ptr :: TYPE rr)) where
+instance Semigroup (Write s) where
     -- TODO feels like this might be INLINE[1] or even INLINE[0]?
     {-# INLINE (<>) #-}
     Write ll lp <> Write rl rp = Write (ll + rl) (lp <> rp)
 
 -- | The empty 'Write' is the empty 'Poke', which writes zero bytes.
-instance Monoid (Poke s ptr) => Monoid (Write s (ptr :: TYPE rr)) where
+instance Monoid (Write s) where
     {-# INLINE mempty #-}
     mempty = Write 0 mempty
 
-runWriteBS :: Write RealWorld Addr# -> BS.ByteString
-runWriteBS = runWriteWith unsafeRunPokeBS
+runWriteBS :: Write RealWorld -> BS.ByteString
+runWriteBS = runWriteWith P.unsafeRunPokeBS
 
-runWriteBSUptoN :: Write RealWorld Addr# -> BS.ByteString
-runWriteBSUptoN = runWriteWith unsafeRunPokeBSUptoN
-
-runWriteSBS :: (forall s. Write s (MutableByteArray# s)) -> SBS.ShortByteString
-runWriteSBS w = unsafeRunPokeSBS (size w) (poke w)
+runWriteBSUptoN :: Write RealWorld -> BS.ByteString
+runWriteBSUptoN = runWriteWith P.unsafeRunPokeBSUptoN
 
 -- | Helper for writing 'Write' runners.
-runWriteWith
-    :: forall {rr} (ptr :: TYPE rr) a s
-    .  (Int -> Poke s ptr -> a)
-    -> Write s ptr
-    -> a
+--
+-- TODO still needed with no Pokeable or not? idk
+runWriteWith :: forall a s. (Int -> P.Poke s -> a) -> Write s -> a
 runWriteWith runPoke (Write size poke) = runPoke size poke
 
-prim
-    :: forall {rr} a ptr
-    .  (P.Pokeable (ptr :: TYPE rr), Prim' a)
-    => a
-    -> Write (P.PS ptr) ptr
+prim :: forall a s. Prim' a => a -> Write s
 prim a = Write (sizeOf (undefined :: a)) (P.prim a)

@@ -6,7 +6,6 @@ import Data.Text.Array qualified as A
 
 import Bytezap.Poke.Derived ( unsafePokeIndexed )
 import Bytezap.Poke
-import Bytezap.Pokeable
 
 import GHC.Exts
 import Foreign.C.Types ( CChar )
@@ -30,13 +29,12 @@ escapeW8 w | w >= 0x80 = 1 -- all multibyte chars are unescaped
                                    0x09 -> 2 -- \t
                                    _    -> if w < 0x20 then 6 else 1
 
-pokeEscapedTextUnquoted
-    :: Pokeable (ptr :: TYPE rr) => T.Text -> Poke (PS ptr) ptr
+pokeEscapedTextUnquoted :: T.Text -> Poke s
 pokeEscapedTextUnquoted (T.Text arr off len) =
     unsafePokeIndexed (pokeEscapeW8 . A.unsafeIndex arr) off len
 
 -- think we have to poke bytes here still thanks to endianness >:(
-pokeEscapeW8 :: Pokeable (ptr :: TYPE rr) => Word8 -> Poke (PS ptr) ptr
+pokeEscapeW8 :: Word8 -> Poke s
 pokeEscapeW8 w
   | w >= 0x80 = w8 w -- all multibyte chars are unescaped
   | otherwise =
@@ -48,13 +46,13 @@ pokeEscapeW8 w
           0x09 -> w8 0x5C <> w8 0x74 -- \t
           _    ->
             if w >= 0x20 then w8 w else w8 0x5C <> w8 0x75 <> w8 0x30 <> w8 0x30 <> w8AsciiHex w
-  where w8 = prim' @Word8
+  where w8 = prim @Word8
 
 -- note I index because I _think_ this is immutable mem! but I might be wrong
 -- and very stupid!!
 -- look I'm copying some very weird code from bytestring here. idk
 {-# INLINE w8AsciiHex #-}
-w8AsciiHex :: Pokeable (ptr :: TYPE rr) => Word8 -> Poke (PS ptr) ptr
+w8AsciiHex :: Word8 -> Poke s
 w8AsciiHex w = prim (W16# (indexWord16OffAddr# c_lower_hex_table# wI))
   where
     !(I# wI) = fromIntegral w
