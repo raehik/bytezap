@@ -35,22 +35,18 @@ instance Monoid (Poke s) where
 -- | Execute a 'Poke' at a fresh 'BS.ByteString' of the given length.
 unsafeRunPokeBS :: Int -> Poke RealWorld -> BS.ByteString
 unsafeRunPokeBS len = BS.unsafeCreate len . wrapIO
-{-# INLINE unsafeRunPokeBS #-}
 
 wrapIO :: Poke RealWorld -> Ptr Word8 -> IO ()
 wrapIO f p = void (wrapIOUptoN f p)
-{-# INLINE wrapIO #-}
 
 wrapIOUptoN :: Poke RealWorld -> Ptr Word8 -> IO Int
 wrapIOUptoN (Poke p) (Ptr addr#) = IO $ \s0 ->
     case p addr# 0# s0 of (# s1, len# #) -> (# s1, I# len# #)
-{-# INLINE wrapIOUptoN #-}
 
 -- | Execute a 'Poke' at a fresh 'BS.ByteString' of the given maximum length.
 --   Does not reallocate if final size is less than estimated.
 unsafeRunPokeBSUptoN :: Int -> Poke RealWorld -> BS.ByteString
 unsafeRunPokeBSUptoN len = BS.unsafeCreateUptoN len . wrapIOUptoN
-{-# INLINE unsafeRunPokeBSUptoN #-}
 
 -- | Poke a type via its 'Prim'' instance.
 prim :: forall a s. Prim' a => a -> Poke s

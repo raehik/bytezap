@@ -51,7 +51,6 @@ pokeEscapeW8 w
 -- note I index because I _think_ this is immutable mem! but I might be wrong
 -- and very stupid!!
 -- look I'm copying some very weird code from bytestring here. idk
-{-# INLINE w8AsciiHex #-}
 w8AsciiHex :: Word8 -> Poke s
 w8AsciiHex w = prim (W16# (indexWord16OffAddr# c_lower_hex_table# wI))
   where

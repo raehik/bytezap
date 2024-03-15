@@ -42,7 +42,6 @@ char = go . ord
                         <> w8 (fromIntegral (0x80 + ((oc `shiftR` 12) .&. 0x3f)))
                         <> w8 (fromIntegral (0x80 + ((oc `shiftR` 6) .&. 0x3f)))
                         <> w8 (fromIntegral (0x80 + oc .&. 0x3f))
-{-# INLINE char #-}
 
 -- v TODO maybe not needed any more thanks to removing Pokeable class
 -- | @unsafePokeIndexed pokeAt off n@ performs @n@ indexed pokes starting from
@@ -61,4 +60,3 @@ unsafePokeIndexed pokeAt off n = go off
     go i | i >= iend = mempty
          | otherwise = pokeAt i <> go (i+1)
     iend = off + n
-{-# INLINE unsafePokeIndexed #-}
