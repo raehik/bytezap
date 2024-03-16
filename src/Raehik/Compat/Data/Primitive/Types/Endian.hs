@@ -33,6 +33,7 @@ instance ByteSwap Double where
 
 newtype ByteOrdered (end :: ByteOrder) a = ByteOrdered
   { unByteOrdered :: a }
+    deriving (Ord, Eq, Show, Num) via a
 
 -- | Newtype for easier instance derivation.
 newtype PrimByteSwapped a = PrimByteSwapped { unPrimByteSwapped :: a }
