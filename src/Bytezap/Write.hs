@@ -2,7 +2,9 @@
 
 -- safe module, only export the safe bits (no @Write(..)@!!)
 module Bytezap.Write
-  ( Write, runWriteBS, runWriteBSUptoN, prim, byteString, byteArray#
+  ( Write
+  , runWriteBS, runWriteBSUptoN
+  , prim, byteString, byteArray#, replicateByte
   ) where
 
 import Bytezap.Write.Internal
@@ -10,8 +12,8 @@ import Bytezap.Write.Internal
 import Bytezap.Poke qualified as P
 import Raehik.Compat.Data.Primitive.Types
 import GHC.Exts
-
 import Data.ByteString qualified as BS
+import Data.Word ( Word8 )
 
 runWriteBS :: Write RealWorld -> BS.ByteString
 runWriteBS = runWriteWith P.unsafeRunPokeBS
@@ -34,3 +36,7 @@ byteArray# ba# baos# balen# = Write{..}
   where
     size = I# balen#
     poke = P.byteArray# ba# baos# balen#
+
+-- | essentially memset
+replicateByte :: Int -> Word8 -> Write RealWorld
+replicateByte len byte = Write len (P.replicateByte len byte)

@@ -8,7 +8,7 @@ import GHC.Exts
 import Raehik.Compat.GHC.Exts.GHC908MemcpyPrimops
 
 import GHC.IO
-import Data.Word
+import GHC.Word
 
 import Data.ByteString qualified as BS
 import Data.ByteString.Internal qualified as BS
@@ -67,3 +67,11 @@ byteArray# :: ByteArray# -> Int# -> Int# -> Poke s
 byteArray# ba# baos# balen# = Poke $ \addr# os# s0 ->
     case copyByteArrayToAddr# ba# baos# (addr# `plusAddr#` os#) balen# s0 of
       s1 -> (# s1, os# +# balen# #)
+
+-- | essentially memset
+replicateByte :: Int -> Word8 -> Poke RealWorld
+replicateByte (I# len#) (W8# byte#) = Poke $ \addr# os# s0 ->
+    case setAddrRange# (addr# `plusAddr#` os#) len# byteAsInt# s0 of
+      s1 -> (# s1, os# +# len# #)
+  where
+    byteAsInt# = word2Int# (word8ToWord# byte#)
