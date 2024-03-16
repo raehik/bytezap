@@ -2,7 +2,7 @@
 
 -- safe module, only export the safe bits (no @Write(..)@!!)
 module Bytezap.Write
-  ( Write
+  ( Write(size, poke)
   , runWriteBS, runWriteBSUptoN
   , prim, byteString, byteArray#, replicateByte
   ) where
