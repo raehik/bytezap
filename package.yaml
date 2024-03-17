@@ -61,3 +61,5 @@ dependencies:
 
 library:
   source-dirs: src
+  c-sources:
+  - cbits/aligned-static-hs-data.c
