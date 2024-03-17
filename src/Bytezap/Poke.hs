@@ -9,6 +9,7 @@ import Raehik.Compat.GHC.Exts.GHC908MemcpyPrimops
 
 import GHC.IO
 import GHC.Word
+import GHC.Int
 
 import Data.ByteString qualified as BS
 import Data.ByteString.Internal qualified as BS
@@ -18,6 +19,8 @@ import Control.Monad ( void )
 import Raehik.Compat.Data.Primitive.Types
 
 import GHC.ForeignPtr
+
+import Control.Monad.Primitive
 
 type Poke# s = Addr# -> Int# -> State# s -> (# State# s, Int# #)
 
@@ -34,19 +37,24 @@ instance Monoid (Poke s) where
 
 -- | Execute a 'Poke' at a fresh 'BS.ByteString' of the given length.
 unsafeRunPokeBS :: Int -> Poke RealWorld -> BS.ByteString
-unsafeRunPokeBS len = BS.unsafeCreate len . wrapIO
-
-wrapIO :: Poke RealWorld -> Ptr Word8 -> IO ()
-wrapIO f p = void (wrapIOUptoN f p)
-
-wrapIOUptoN :: Poke RealWorld -> Ptr Word8 -> IO Int
-wrapIOUptoN (Poke p) (Ptr addr#) = IO $ \s0 ->
-    case p addr# 0# s0 of (# s1, len# #) -> (# s1, I# len# #)
+unsafeRunPokeBS len p = BS.unsafeCreate len (void <$> unsafeRunPoke p)
 
 -- | Execute a 'Poke' at a fresh 'BS.ByteString' of the given maximum length.
 --   Does not reallocate if final size is less than estimated.
 unsafeRunPokeBSUptoN :: Int -> Poke RealWorld -> BS.ByteString
-unsafeRunPokeBSUptoN len = BS.unsafeCreateUptoN len . wrapIOUptoN
+unsafeRunPokeBSUptoN len = BS.unsafeCreateUptoN len . unsafeRunPoke
+
+-- | Execute a 'Poke' at a pointer. Returns the number of bytes written.
+--
+-- The pointer must be a mutable buffer with enough space to hold the poke.
+-- Absolutely none of this is checked. Use with caution. Sensible uses:
+--
+-- * implementing pokes to ByteStrings and the like
+-- * executing known-length (!!) pokes to known-length (!!) buffers e.g.
+--   together with allocaBytes
+unsafeRunPoke :: MonadPrim s m => Poke s -> Ptr Word8 -> m Int
+unsafeRunPoke (Poke p) (Ptr addr#) = primitive $ \s0 ->
+    case p addr# 0# s0 of (# s1, os# #) -> (# s1, I# os# #)
 
 -- | Poke a type via its 'Prim'' instance.
 prim :: forall a s. Prim' a => a -> Poke s
