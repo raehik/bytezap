@@ -63,13 +63,33 @@ instance Prim' Word16 where
 
 instance Prim' Word32 where
     type SizeOf Word32 = SIZEOF_WORD32
-    writeWord8OffAddrAs# base# os# (W32# i#) s# =
-        writeWord8OffAddrAsWord32# base# os# i# s#
+    indexWord8ByteArrayAs# arr# os# = W32# (indexWord8ArrayAsWord32# arr# os#)
+    readWord8ByteArrayAs# arr# os# = \s0 ->
+        case readWord8ArrayAsWord32# arr# os# s0 of
+          (# s1, w# #) -> (# s1, W32# w# #)
+    writeWord8ByteArrayAs# arr# os# (W32# w#) = \s0 ->
+        writeWord8ArrayAsWord32# arr# os# w# s0
+    indexWord8OffAddrAs# addr# os# = W32# (indexWord8OffAddrAsWord32# addr# os#)
+    readWord8OffAddrAs# addr# os# = \s0 ->
+        case readWord8OffAddrAsWord32# addr# os# s0 of
+          (# s1, w# #) -> (# s1, W32# w# #)
+    writeWord8OffAddrAs# addr# os# (W32# w#) s# =
+        writeWord8OffAddrAsWord32# addr# os# w# s#
 
 instance Prim' Word64 where
     type SizeOf Word64 = SIZEOF_WORD64
-    writeWord8OffAddrAs# base# os# (W64# i#) s# =
-        writeWord8OffAddrAsWord64# base# os# i# s#
+    indexWord8ByteArrayAs# arr# os# = W64# (indexWord8ArrayAsWord64# arr# os#)
+    readWord8ByteArrayAs# arr# os# = \s0 ->
+        case readWord8ArrayAsWord64# arr# os# s0 of
+          (# s1, w# #) -> (# s1, W64# w# #)
+    writeWord8ByteArrayAs# arr# os# (W64# w#) = \s0 ->
+        writeWord8ArrayAsWord64# arr# os# w# s0
+    indexWord8OffAddrAs# addr# os# = W64# (indexWord8OffAddrAsWord64# addr# os#)
+    readWord8OffAddrAs# addr# os# = \s0 ->
+        case readWord8OffAddrAsWord64# addr# os# s0 of
+          (# s1, w# #) -> (# s1, W64# w# #)
+    writeWord8OffAddrAs# addr# os# (W64# w#) s# =
+        writeWord8OffAddrAsWord64# addr# os# w# s#
 
 instance Prim' Int8 where
     type SizeOf Int8 = SIZEOF_INT8
@@ -80,28 +100,77 @@ instance Prim' Int8 where
     readWord8OffAddrAs#    = P.readOffAddr#
     writeWord8OffAddrAs#   = P.writeOffAddr#
 
-
 instance Prim' Int16 where
     type SizeOf Int16 = SIZEOF_INT16
-    writeWord8OffAddrAs# base# os# (I16# i#) s# =
-        writeWord8OffAddrAsInt16# base# os# i# s#
+    indexWord8ByteArrayAs# arr# os# = I16# (indexWord8ArrayAsInt16# arr# os#)
+    readWord8ByteArrayAs# arr# os# = \s0 ->
+        case readWord8ArrayAsInt16# arr# os# s0 of
+          (# s1, w# #) -> (# s1, I16# w# #)
+    writeWord8ByteArrayAs# arr# os# (I16# w#) = \s0 ->
+        writeWord8ArrayAsInt16# arr# os# w# s0
+    indexWord8OffAddrAs# addr# os# = I16# (indexWord8OffAddrAsInt16# addr# os#)
+    readWord8OffAddrAs# addr# os# = \s0 ->
+        case readWord8OffAddrAsInt16# addr# os# s0 of
+          (# s1, w# #) -> (# s1, I16# w# #)
+    writeWord8OffAddrAs# addr# os# (I16# w#) s# =
+        writeWord8OffAddrAsInt16# addr# os# w# s#
 
 instance Prim' Int32 where
     type SizeOf Int32 = SIZEOF_INT32
-    writeWord8OffAddrAs# base# os# (I32# i#) s# =
-        writeWord8OffAddrAsInt32# base# os# i# s#
+    indexWord8ByteArrayAs# arr# os# = I32# (indexWord8ArrayAsInt32# arr# os#)
+    readWord8ByteArrayAs# arr# os# = \s0 ->
+        case readWord8ArrayAsInt32# arr# os# s0 of
+          (# s1, w# #) -> (# s1, I32# w# #)
+    writeWord8ByteArrayAs# arr# os# (I32# w#) = \s0 ->
+        writeWord8ArrayAsInt32# arr# os# w# s0
+    indexWord8OffAddrAs# addr# os# = I32# (indexWord8OffAddrAsInt32# addr# os#)
+    readWord8OffAddrAs# addr# os# = \s0 ->
+        case readWord8OffAddrAsInt32# addr# os# s0 of
+          (# s1, w# #) -> (# s1, I32# w# #)
+    writeWord8OffAddrAs# addr# os# (I32# w#) s# =
+        writeWord8OffAddrAsInt32# addr# os# w# s#
 
 instance Prim' Int64 where
     type SizeOf Int64 = SIZEOF_INT64
-    writeWord8OffAddrAs# base# os# (I64# i#) s# =
-        writeWord8OffAddrAsInt64# base# os# i# s#
+    indexWord8ByteArrayAs# arr# os# = I64# (indexWord8ArrayAsInt64# arr# os#)
+    readWord8ByteArrayAs# arr# os# = \s0 ->
+        case readWord8ArrayAsInt64# arr# os# s0 of
+          (# s1, w# #) -> (# s1, I64# w# #)
+    writeWord8ByteArrayAs# arr# os# (I64# w#) = \s0 ->
+        writeWord8ArrayAsInt64# arr# os# w# s0
+    indexWord8OffAddrAs# addr# os# = I64# (indexWord8OffAddrAsInt64# addr# os#)
+    readWord8OffAddrAs# addr# os# = \s0 ->
+        case readWord8OffAddrAsInt64# addr# os# s0 of
+          (# s1, w# #) -> (# s1, I64# w# #)
+    writeWord8OffAddrAs# addr# os# (I64# w#) s# =
+        writeWord8OffAddrAsInt64# addr# os# w# s#
 
 instance Prim' Word where
     type SizeOf Word = SIZEOF_HSWORD
-    writeWord8OffAddrAs# base# os# (W# i#) s# =
-        writeWord8OffAddrAsWord# base# os# i# s#
+    indexWord8ByteArrayAs# arr# os# = W# (indexWord8ArrayAsWord# arr# os#)
+    readWord8ByteArrayAs# arr# os# = \s0 ->
+        case readWord8ArrayAsWord# arr# os# s0 of
+          (# s1, w# #) -> (# s1, W# w# #)
+    writeWord8ByteArrayAs# arr# os# (W# w#) = \s0 ->
+        writeWord8ArrayAsWord# arr# os# w# s0
+    indexWord8OffAddrAs# addr# os# = W# (indexWord8OffAddrAsWord# addr# os#)
+    readWord8OffAddrAs# addr# os# = \s0 ->
+        case readWord8OffAddrAsWord# addr# os# s0 of
+          (# s1, w# #) -> (# s1, W# w# #)
+    writeWord8OffAddrAs# addr# os# (W# w#) s# =
+        writeWord8OffAddrAsWord# addr# os# w# s#
 
 instance Prim' Int where
     type SizeOf Int = SIZEOF_HSINT
-    writeWord8OffAddrAs# base# os# (I# i#) s# =
-        writeWord8OffAddrAsInt# base# os# i# s#
+    indexWord8ByteArrayAs# arr# os# = I# (indexWord8ArrayAsInt# arr# os#)
+    readWord8ByteArrayAs# arr# os# = \s0 ->
+        case readWord8ArrayAsInt# arr# os# s0 of
+          (# s1, w# #) -> (# s1, I# w# #)
+    writeWord8ByteArrayAs# arr# os# (I# w#) = \s0 ->
+        writeWord8ArrayAsInt# arr# os# w# s0
+    indexWord8OffAddrAs# addr# os# = I# (indexWord8OffAddrAsInt# addr# os#)
+    readWord8OffAddrAs# addr# os# = \s0 ->
+        case readWord8OffAddrAsInt# addr# os# s0 of
+          (# s1, w# #) -> (# s1, I# w# #)
+    writeWord8OffAddrAs# addr# os# (I# w#) s# =
+        writeWord8OffAddrAsInt# addr# os# w# s#
