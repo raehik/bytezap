@@ -26,11 +26,11 @@ newtype Poke s = Poke { unPoke :: Poke# s }
 
 -- | Sequence two 'Poke's left-to-right.
 instance Semigroup (Poke s) where
-    Poke l <> Poke r = Poke $ \addr# os# s0 ->
-        case l addr# os# s0 of (# s1, os'# #) -> r addr# os'# s1
+    Poke l <> Poke r = Poke $ \addr# os0# s0 ->
+        case l addr# os0# s0 of (# s1, os1# #) -> r addr# os1# s1
 
 instance Monoid (Poke s) where
-    mempty = Poke $ \_addr# os# s0 -> (# s0, os# #)
+    mempty = Poke $ \_addr# os# s -> (# s, os# #)
 
 -- | Execute a 'Poke' at a fresh 'BS.ByteString' of the given length.
 unsafeRunPokeBS :: Int -> Poke RealWorld -> BS.ByteString

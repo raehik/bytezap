@@ -76,7 +76,7 @@ instance (Prim' a, ByteSwap a) => Prim' (PrimByteSwapped a) where
         case readWord8OffAddrAs# addr# os# s0 of
           (# s1, a #) -> (# s1, PrimByteSwapped (byteSwap a) #)
     writeWord8OffAddrAs# addr# os# (PrimByteSwapped a) = \s0 ->
-        writeOffAddr# addr# os# (byteSwap a) s0
+        writeWord8OffAddrAs# addr# os# (byteSwap a) s0
 
 -- idk why I gotta (a :: Type) why is GHC going kind-polymorphic there lol
 #if defined(WORDS_BIGENDIAN)
