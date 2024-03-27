@@ -54,7 +54,7 @@ class GPokeBase idx where
     type KnownSizeOf' idx a :: Constraint
 
     -- | Get the poked length of the given type. Unboxed because I felt like it.
-    sizeOf' :: KnownSizeOf' idx a => Int#
+    sizeOf' :: forall a. KnownSizeOf' idx a => Int#
 
 class GPoke idx f where gPoke :: f p -> Poke# (GPokeBaseSt idx)
 
