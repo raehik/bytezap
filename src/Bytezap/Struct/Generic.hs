@@ -55,6 +55,9 @@ class GPokeBase idx where
 
 class GPoke idx f where gPoke :: f p -> Poke# s
 
+instance GPoke idx f => GPoke idx (D1 c f) where gPoke = gPoke @idx . unM1
+instance GPoke idx f => GPoke idx (C1 c f) where gPoke = gPoke @idx . unM1
+
 instance (GPoke idx l, GPoke idx r, GPokeBase idx, KnownSizeOf' idx (UnwrapGenericS1 l))
   => GPoke idx (l :*: r) where
     -- TODO moved os and s0 to RHS because base is const and those aren't?
