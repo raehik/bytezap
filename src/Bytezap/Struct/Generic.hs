@@ -33,7 +33,7 @@ import GHC.Exts
 type family UnwrapGenericS1 a where
     UnwrapGenericS1 (S1 c (Rec0 a)) = a
 
--- |
+-- | Internal type class required to TODO maybe I can shove this into GPokeBase
 --
 -- TODO didn't realize I could shove KnownNat into head! unsure if will work
 class KnownNat (SizeOf a) => KnownSizeOf a where
@@ -51,6 +51,9 @@ class GPokeBase idx where
     -- | The "map" function in 'foldMap' (first argument).
     gPokeBase :: GPokeBaseC idx a => a -> Poke# s
 
+    type KnownSizeOf' idx a :: Constraint
+    sizeOf' :: KnownSizeOf' idx a => Int
+
 class GPoke idx f where gPoke :: f p -> Poke# s
 
 instance (GPoke idx l, GPoke idx r, KnownSizeOf (UnwrapGenericS1 l))
@@ -65,7 +68,7 @@ instance (GPokeBase idx, GPokeBaseC idx a) => GPoke idx (S1 c (Rec0 a)) where
     gPoke = gPokeBase @idx . unK1 . unM1
 
 -- | Wow, look! Nothing!
-instance GPoke idx U1 where gPoke U1 _base# _os# s0 = s0
+instance GPoke idx U1 where gPoke U1 _base# = \_os# s0 -> s0
 
 plusOffset# :: forall a. KnownSizeOf a => Int# -> Int#
 plusOffset# os# = os# +# len#
