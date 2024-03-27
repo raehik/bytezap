@@ -40,12 +40,15 @@ type family UnwrapGenericS1 a where
 -- We stay unboxed here because the internals are unboxed, just for convenience.
 -- Maybe this is bad, let me know.
 class GPokeBase idx where
+    -- | The state token of our poker.
+    type GPokeBaseSt idx
+
     -- | The type class that provides base case poking.
     --
     -- The type class should provide a function that looks like 'gPokeBase'.
     type GPokeBaseC idx a :: Constraint
 
-    gPokeBase :: GPokeBaseC idx a => a -> Poke# s
+    gPokeBase :: GPokeBaseC idx a => a -> Poke# (GPokeBaseSt idx)
 
     -- | The type class that provides poked length (known at compile time).
     type KnownSizeOf' idx a :: Constraint
@@ -53,7 +56,7 @@ class GPokeBase idx where
     -- | Get the poked length of the given type. Unboxed because I felt like it.
     sizeOf' :: KnownSizeOf' idx a => Int#
 
-class GPoke idx f where gPoke :: f p -> Poke# s
+class GPoke idx f where gPoke :: f p -> Poke# (GPokeBaseSt idx)
 
 instance GPoke idx f => GPoke idx (D1 c f) where gPoke = gPoke @idx . unM1
 instance GPoke idx f => GPoke idx (C1 c f) where gPoke = gPoke @idx . unM1
