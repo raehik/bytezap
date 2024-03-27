@@ -25,51 +25,46 @@ module Bytezap.Struct.Generic where
 
 import Bytezap.Struct
 import GHC.Generics
-import GHC.TypeNats
-import Util.TypeNats ( natValInt )
 import GHC.Exts
 
 -- TODO fill in kind of a (some generic thing)
 type family UnwrapGenericS1 a where
     UnwrapGenericS1 (S1 c (Rec0 a)) = a
 
--- | Internal type class required to TODO maybe I can shove this into GPokeBase
---
--- TODO didn't realize I could shove KnownNat into head! unsure if will work
-class KnownNat (SizeOf a) => KnownSizeOf a where
-    type SizeOf a :: Natural
-
 -- | Class for holding info on class to use for poking base cases.
 --
 -- The type is just used to map to class info. It is never instantiated.
+-- By packing @KnownSizeOf@ into here, we don't need to enforce a type-level
+-- solution! Now it's up to you how you want to track your constant lengths.
+--
+-- We stay unboxed here because the internals are unboxed, just for convenience.
+-- Maybe this is bad, let me know.
 class GPokeBase idx where
     -- | The type class that provides base case poking.
     --
     -- The type class should provide a function that looks like 'gPokeBase'.
     type GPokeBaseC idx a :: Constraint
 
-    -- | The "map" function in 'foldMap' (first argument).
     gPokeBase :: GPokeBaseC idx a => a -> Poke# s
 
+    -- | The type class that provides poked length (known at compile time).
     type KnownSizeOf' idx a :: Constraint
-    sizeOf' :: KnownSizeOf' idx a => Int
+
+    -- | Get the poked length of the given type. Unboxed because I felt like it.
+    sizeOf' :: KnownSizeOf' idx a => Int#
 
 class GPoke idx f where gPoke :: f p -> Poke# s
 
-instance (GPoke idx l, GPoke idx r, KnownSizeOf (UnwrapGenericS1 l))
+instance (GPoke idx l, GPoke idx r, GPokeBase idx, KnownSizeOf' idx (UnwrapGenericS1 l))
   => GPoke idx (l :*: r) where
     -- TODO moved os and s0 to RHS because base is const and those aren't?
     -- will this change anything?? idk!!!!
     gPoke (l :*: r) base# = \os# s0 ->
         case gPoke @idx l base# os# s0 of
-          s1 -> gPoke @idx r base# (plusOffset# @(UnwrapGenericS1 l) os#) s1
+          s1 -> gPoke @idx r base# (os# +# sizeOf' @idx @(UnwrapGenericS1 l)) s1
 
 instance (GPokeBase idx, GPokeBaseC idx a) => GPoke idx (S1 c (Rec0 a)) where
     gPoke = gPokeBase @idx . unK1 . unM1
 
 -- | Wow, look! Nothing!
 instance GPoke idx U1 where gPoke U1 _base# = \_os# s0 -> s0
-
-plusOffset# :: forall a. KnownSizeOf a => Int# -> Int#
-plusOffset# os# = os# +# len#
-  where !(I# len#) = natValInt @(SizeOf a)
