@@ -54,7 +54,11 @@ class GPokeBase idx where
     type KnownSizeOf' idx a :: Constraint
 
     -- | Get the poked length of the given type. Unboxed because I felt like it.
-    sizeOf' :: forall a. KnownSizeOf' idx a => Int#
+    --
+    -- I think we have to pass a proxy, because of forall limitations on
+    -- instance signatures. This would be much better with explicit type
+    -- variables (GHC 9.10 or 9.12).
+    sizeOf' :: forall a. KnownSizeOf' idx a => Proxy# a -> Int#
 
 class GPoke idx f where gPoke :: f p -> Poke# (GPokeBaseSt idx)
 
@@ -67,7 +71,7 @@ instance (GPoke idx l, GPoke idx r, GPokeBase idx, KnownSizeOf' idx (UnwrapGener
     -- will this change anything?? idk!!!!
     gPoke (l :*: r) base# = \os# s0 ->
         case gPoke @idx l base# os# s0 of
-          s1 -> gPoke @idx r base# (os# +# sizeOf' @idx @(UnwrapGenericS1 l)) s1
+          s1 -> gPoke @idx r base# (os# +# sizeOf' @idx @(UnwrapGenericS1 l) proxy#) s1
 
 instance (GPokeBase idx, GPokeBaseC idx a) => GPoke idx (S1 c (Rec0 a)) where
     gPoke = gPokeBase @idx . unK1 . unM1
