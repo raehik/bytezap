@@ -94,4 +94,4 @@ replicateByte (I# len#) (W8# byte#) = Poke $ \base# os# s0 ->
 -- struct pokers, or your own constant size class if you're doing funky stuff).
 fromStructPoke :: Int -> Struct.Poke s -> Poke s
 fromStructPoke (I# len#) (Struct.Poke p) = Poke $ \base# os# s ->
-    (# p base# os# s, len# #)
+    (# p base# os# s, os# +# len# #)
