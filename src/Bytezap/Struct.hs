@@ -62,3 +62,7 @@ unsafeRunPoke (Poke p) (Ptr base#) = primitive $ \s0 -> (# p base# 0# s0, () #)
 -- | Poke a type via its 'Prim'' instance.
 prim :: forall a s. Prim' a => a -> Poke s
 prim a = Poke $ \base# os# s0 -> writeWord8OffAddrAs# base# os# a s0
+
+-- | The empty poke. Provided here as we can't provide it via 'Monoid.empty'.
+emptyPoke :: Poke s
+emptyPoke = Poke $ \_base# _os# s0 -> s0
