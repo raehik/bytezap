@@ -30,6 +30,9 @@ import Data.Word ( Word8 )
 import Data.ByteString qualified as BS
 import Data.ByteString.Internal qualified as BS
 
+import GHC.Word ( Word8(W8#) )
+import Raehik.Compat.GHC.Exts.GHC908MemcpyPrimops ( setAddrRange# )
+
 -- | A struct poker: base address (constant), byte offset, state token.
 --
 -- We could combine base address and byte offset, but we're aiming for code that
@@ -71,3 +74,10 @@ emptyPoke = Poke $ \_base# _os# s0 -> s0
 sequencePokes :: Poke s -> Int -> Poke s -> Poke s
 sequencePokes (Poke pl) (I# ll#) (Poke pr) = Poke $ \base# os# s0 -> do
     case pl base# os# s0 of s1 -> pr base# (os# +# ll#) s1
+
+-- | essentially memset
+replicateByte :: Int -> Word8 -> Poke RealWorld
+replicateByte (I# len#) (W8# byte#) = Poke $ \base# os# s0 ->
+    setAddrRange# (base# `plusAddr#` os#) len# byteAsInt# s0
+  where
+    byteAsInt# = word2Int# (word8ToWord# byte#)
