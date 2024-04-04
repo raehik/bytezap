@@ -1,3 +1,5 @@
+{-# LANGUAGE UnboxedTuples #-}
+
 {- | Struct serializer: serialize fields of known length.
 
 In Haskell-ish terminology, one may consider a C struct to be a product type
@@ -23,6 +25,11 @@ module Bytezap.Struct where
 import GHC.Exts
 import Raehik.Compat.Data.Primitive.Types
 
+import Control.Monad.Primitive ( MonadPrim, primitive )
+import Data.Word ( Word8 )
+import Data.ByteString qualified as BS
+import Data.ByteString.Internal qualified as BS
+
 -- | A struct poker: base address (constant), byte offset, state token.
 --
 -- We could combine base address and byte offset, but we're aiming for code that
@@ -36,6 +43,21 @@ newtype Poke s = Poke { unPoke :: Poke# s }
 
 -- One may write a valid 'Semigroup' instance, but it's nonsensical, so let's
 -- not.
+
+-- | Execute a 'Poke' at a fresh 'BS.ByteString' of the given length.
+unsafeRunPokeBS :: Int -> Poke RealWorld -> BS.ByteString
+unsafeRunPokeBS len p = BS.unsafeCreate len (unsafeRunPoke p)
+
+-- | Execute a 'Poke' at a pointer. Returns the number of bytes written.
+--
+-- The pointer must be a mutable buffer with enough space to hold the poke.
+-- Absolutely none of this is checked. Use with caution. Sensible uses:
+--
+-- * implementing pokes to ByteStrings and the like
+-- * executing known-length (!!) pokes to known-length (!!) buffers e.g.
+--   together with allocaBytes
+unsafeRunPoke :: MonadPrim s m => Poke s -> Ptr Word8 -> m ()
+unsafeRunPoke (Poke p) (Ptr base#) = primitive $ \s0 -> (# p base# 0# s0, () #)
 
 -- | Poke a type via its 'Prim'' instance.
 prim :: forall a s. Prim' a => a -> Poke s
