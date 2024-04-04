@@ -66,3 +66,8 @@ prim a = Poke $ \base# os# s0 -> writeWord8OffAddrAs# base# os# a s0
 -- | The empty poke. Provided here as we can't provide it via 'Monoid.empty'.
 emptyPoke :: Poke s
 emptyPoke = Poke $ \_base# _os# s0 -> s0
+
+-- | Sequence two 'Poke's. We only require the length of the left poke.
+sequencePokes :: Poke s -> Int -> Poke s -> Poke s
+sequencePokes (Poke pl) (I# ll#) (Poke pr) = Poke $ \base# os# s0 -> do
+    case pl base# os# s0 of s1 -> pr base# (os# +# ll#) s1
