@@ -23,7 +23,7 @@ import Bytezap.Struct ( Poke, sequencePokes, emptyPoke, prim )
 import Numeric.Natural ( Natural )
 
 -- | Serialize a type-level bytestring, largest grouping 'Word64'.
-class ReifyBytesW64 (ns :: [Natural]) where reifyBytesW64 :: Poke n
+class ReifyBytesW64 (ns :: [Natural]) where reifyBytesW64 :: Poke s
 
 -- | Enough bytes to make a 'Word64'.
 instance {-# OVERLAPPING #-}
