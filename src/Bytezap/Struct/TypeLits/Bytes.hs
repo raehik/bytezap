@@ -71,7 +71,7 @@ instance ReifyBytesW16 ns => ReifyBytesW32 ns where
     {-# INLINE reifyBytesW32 #-}
     reifyBytesW32 = reifyBytesW16 @ns
 
--- | Serialize a type-level bytestring, largest grouping 'Word32'.
+-- | Serialize a type-level bytestring, largest grouping 'Word16'.
 class ReifyBytesW16 (ns :: [Natural]) where reifyBytesW16 :: Poke s
 
 -- | Enough bytes to make a 'Word16'.

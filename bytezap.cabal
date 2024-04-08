@@ -31,6 +31,7 @@ library
       Bytezap
       Bytezap.Parser.Struct
       Bytezap.Parser.Struct.Generic
+      Bytezap.Parser.Struct.TypeLits.Bytes
       Bytezap.Poke
       Bytezap.Poke.Derived
       Bytezap.Poke.Derived.Endian

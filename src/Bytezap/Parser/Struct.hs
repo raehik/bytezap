@@ -139,3 +139,21 @@ sequenceParsers (I# len#) f (ParserT pa) (ParserT pb) =
 prim :: forall a st e. Prim' a => ParserT st e a
 prim = ParserT \_fpc base os st ->
     case indexWord8OffAddrAs# base os of a -> OK# st a
+
+-- | parse literal
+lit :: Eq a => a -> ParserT st e a -> ParserT st e ()
+lit al (ParserT p) = ParserT \fpc base os st0 ->
+    case p fpc base os st0 of
+      Fail# st1    -> Fail# st1
+      Err#  st1 e  -> Err#  st1 e
+      OK#   st1 ar -> if al == ar then OK# st1 () else Fail# st1
+
+-- | parse literal (CPS)
+withLit
+    :: Eq a => Int# -> a -> ParserT st e a -> ParserT st e r -> ParserT st e r
+withLit len# al (ParserT p) (ParserT pCont) = ParserT \fpc base os# st0 ->
+    case p fpc base os# st0 of
+      Fail# st1    -> Fail# st1
+      Err#  st1 e  -> Err#  st1 e
+      OK#   st1 ar ->
+        if al == ar then pCont fpc base (os# +# len#) st1 else Fail# st1
