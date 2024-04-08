@@ -29,6 +29,8 @@ source-repository head
 library
   exposed-modules:
       Bytezap
+      Bytezap.Parser.Struct
+      Bytezap.Parser.Struct.Generic
       Bytezap.Poke
       Bytezap.Poke.Derived
       Bytezap.Poke.Derived.Endian
