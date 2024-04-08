@@ -12,11 +12,16 @@ to the next type class which handles the next smaller machine word.
 I did a quick Core check and found that GHC seems to successfully generate
 minimal code for this e.g. for an 8-byte magic, GHC will do one
 @writeWord64OffAddr#@ of a constant. Great!
+
+The only way I can think of to make this faster is to somehow obtain an 'Addr#'
+with a known length. With that, we could @memcpy@. But that would be slower for
+small magics, and maybe others. And I doubt we can conjure up an 'Addr#' at
+compile time. So I'm fairly confident that this is the best you're gonna get.
 -}
 
 {-# LANGUAGE AllowAmbiguousTypes, UndecidableInstances #-}
 
-module Bytezap.Struct.TypeLits where
+module Bytezap.Struct.TypeLits.Bytes where
 
 import Raehik.TypeLevelBytes
 import Bytezap.Struct ( Poke, sequencePokes, emptyPoke, prim )
