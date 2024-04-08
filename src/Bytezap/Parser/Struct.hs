@@ -17,6 +17,10 @@ import GHC.Exts
 import GHC.ForeignPtr
 import Data.Void ( Void )
 
+import Data.Word ( Word8 )
+import Data.ByteString.Internal qualified as B
+import System.IO.Unsafe ( unsafePerformIO )
+
 import Raehik.Compat.Data.Primitive.Types
 
 type PureMode = Proxy# Void
@@ -34,6 +38,14 @@ type ParserT# (st :: ZeroBitType) e a =
 -- copying if we want. it's useful
 newtype ParserT (st :: ZeroBitType) e a =
     ParserT { runParserT# :: ParserT# st e a }
+
+instance Functor (ParserT st e) where
+  fmap f (ParserT g) = ParserT \fpc base os st0 -> case g fpc base os st0 of
+    OK# st1 a -> let !b = f a in OK# st1 b
+    x         -> unsafeCoerce# x
+  {-# inline fmap #-}
+
+-- No Applicative due to no offset passing.
 
 -- | The type of pure parsers.
 type Parser     = ParserT PureMode
@@ -75,13 +87,34 @@ pattern Err# :: (st :: ZeroBitType) -> e -> Res# st e a
 pattern Err# st e = (# st, (# | | (# e #) #) #)
 {-# complete OK#, Fail#, Err# #-}
 
-instance Functor (ParserT st e) where
-  fmap f (ParserT g) = ParserT \fpc base os st0 -> case g fpc base os st0 of
-    OK# st1 a -> let !b = f a in OK# st1 b
-    x         -> unsafeCoerce# x
-  {-# inline fmap #-}
+-- | caller must guarantee that buffer is long enough for parser!!
+unsafeRunParserBs :: B.ByteString -> Parser e a -> Result e a
+unsafeRunParserBs (B.BS fptr _) = unsafeRunParserFPtr fptr
 
--- No Applicative due to no offset passing.
+-- | caller must guarantee that buffer is long enough for parser!!
+unsafeRunParserPtr :: Ptr Word8 -> Parser e a -> Result e a
+unsafeRunParserPtr (Ptr base#) = unsafeRunParser' base# FinalPtr
+
+-- | caller must guarantee that buffer is long enough for parser!!
+unsafeRunParserFPtr :: ForeignPtr Word8 -> Parser e a -> Result e a
+unsafeRunParserFPtr fptr p =
+    unsafePerformIO $ B.unsafeWithForeignPtr fptr $ \ptr ->
+        pure $ unsafeRunParserPtr ptr p
+
+-- | caller must guarantee that buffer is long enough for parser!!
+unsafeRunParser' :: Addr# -> ForeignPtrContents -> Parser e a -> Result e a
+unsafeRunParser' base# fpc (ParserT p) =
+    case p fpc base# 0# proxy# of
+      OK#   _st1 a -> OK a
+      Fail# _st1   -> Fail
+      Err#  _st1 e -> Err e
+
+-- | Higher-level boxed data type for parsing results.
+data Result e a =
+    OK a    -- ^ Contains return value.
+  | Fail    -- ^ Recoverable-by-default failure.
+  | Err !e  -- ^ Unrecoverable-by-default error.
+  deriving Show
 
 -- | can't provide via 'pure' as no 'Applicative'
 constParse :: a -> ParserT st e a
