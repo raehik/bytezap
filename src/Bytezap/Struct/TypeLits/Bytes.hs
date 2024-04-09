@@ -75,7 +75,7 @@ instance ReifyBytesW16 ns => ReifyBytesW32 ns where
 class ReifyBytesW16 (ns :: [Natural]) where reifyBytesW16 :: Poke s
 
 -- | Enough bytes to make a 'Word16'.
-instance
+instance {-# OVERLAPPING #-}
   ( ReifyW8 n1
   , ReifyW8 n2
   , ReifyBytesW16 ns

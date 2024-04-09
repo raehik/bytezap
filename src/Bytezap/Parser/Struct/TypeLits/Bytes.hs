@@ -62,7 +62,7 @@ class ParseReifyBytesW16 (ns :: [Natural]) where
     parseReifyBytesW16 :: ParserT st e ()
 
 -- | Enough bytes to make a 'Word16'.
-instance
+instance {-# OVERLAPPING #-}
   ( ReifyW8 n1
   , ReifyW8 n2
   , ParseReifyBytesW16 ns
