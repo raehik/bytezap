@@ -30,6 +30,7 @@ import Bytezap.Common.Generic ( type GCstrLen )
 import Data.Kind
 import GHC.TypeNats
 import Util.TypeNats ( natValInt )
+import DeFun.Core ( type (~>) )
 
 -- | Class for holding info on class to use for poking base cases.
 --
@@ -50,7 +51,7 @@ class GPokeBase tag where
 
     gPokeBase :: GPokeBaseC tag a => a -> Poke# (GPokeBaseSt tag)
 
-    type GPokeBaseLenTF tag :: Type -> Natural
+    type GPokeBaseLenTF tag :: Type ~> Natural
 
 class GPoke tag f where gPoke :: f p -> Poke# (GPokeBaseSt tag)
 

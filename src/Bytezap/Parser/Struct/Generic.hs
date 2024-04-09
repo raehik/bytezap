@@ -10,6 +10,7 @@ import Data.Kind
 import GHC.TypeNats
 import Util.TypeNats ( natValInt )
 import Bytezap.Common.Generic ( type GCstrLen )
+import DeFun.Core ( type (~>) )
 
 class GParseBase tag where
     -- | The state token of the parser.
@@ -22,7 +23,7 @@ class GParseBase tag where
         :: GParseBaseC tag a
         => ParserT (GParseBaseSt tag) (GParseBaseE tag) a
 
-    type GParseBaseLenTF tag :: Type -> Natural
+    type GParseBaseLenTF tag :: Type ~> Natural
 
 class GParse tag gf where
     gParse :: ParserT (GParseBaseSt tag) (GParseBaseE tag) (gf p)
