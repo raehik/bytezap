@@ -29,6 +29,7 @@ source-repository head
 library
   exposed-modules:
       Bytezap
+      Bytezap.Common.Generic
       Bytezap.Parser.Struct
       Bytezap.Parser.Struct.Generic
       Bytezap.Parser.Struct.TypeLits.Bytes

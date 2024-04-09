@@ -26,10 +26,10 @@ module Bytezap.Struct.Generic where
 import Bytezap.Struct
 import GHC.Generics
 import GHC.Exts
-
--- TODO fill in kind of a (some generic thing)
-type family UnwrapGenericS1 a where
-    UnwrapGenericS1 (S1 c (Rec0 a)) = a
+import Bytezap.Common.Generic ( type GCstrLen )
+import Data.Kind
+import GHC.TypeNats
+import Util.TypeNats ( natValInt )
 
 -- | Class for holding info on class to use for poking base cases.
 --
@@ -39,42 +39,40 @@ type family UnwrapGenericS1 a where
 --
 -- We stay unboxed here because the internals are unboxed, just for convenience.
 -- Maybe this is bad, let me know.
-class GPokeBase idx where
+class GPokeBase tag where
     -- | The state token of our poker.
-    type GPokeBaseSt idx
+    type GPokeBaseSt tag
 
     -- | The type class that provides base case poking.
     --
     -- The type class should provide a function that looks like 'gPokeBase'.
-    type GPokeBaseC idx a :: Constraint
+    type GPokeBaseC tag a :: Constraint
 
-    gPokeBase :: GPokeBaseC idx a => a -> Poke# (GPokeBaseSt idx)
+    gPokeBase :: GPokeBaseC tag a => a -> Poke# (GPokeBaseSt tag)
 
-    -- | The type class that provides poked length (known at compile time).
-    type KnownSizeOf' idx a :: Constraint
+    type GPokeBaseLenTF tag :: Type -> Natural
 
-    -- | Get the poked length of the given type. Unboxed because I felt like it.
-    --
-    -- I think we have to pass a proxy, because of forall limitations on
-    -- instance signatures. This would be much better with explicit type
-    -- variables (GHC 9.10 or 9.12).
-    sizeOf' :: forall a. KnownSizeOf' idx a => Proxy# a -> Int#
+class GPoke tag f where gPoke :: f p -> Poke# (GPokeBaseSt tag)
 
-class GPoke idx f where gPoke :: f p -> Poke# (GPokeBaseSt idx)
+instance GPoke tag f => GPoke tag (D1 c f) where gPoke = gPoke @tag . unM1
+instance GPoke tag f => GPoke tag (C1 c f) where gPoke = gPoke @tag . unM1
 
-instance GPoke idx f => GPoke idx (D1 c f) where gPoke = gPoke @idx . unM1
-instance GPoke idx f => GPoke idx (C1 c f) where gPoke = gPoke @idx . unM1
-
-instance (GPoke idx l, GPoke idx r, GPokeBase idx, KnownSizeOf' idx (UnwrapGenericS1 l))
-  => GPoke idx (l :*: r) where
+instance
+  ( GPoke tag l
+  , GPoke tag r
+  , GPokeBase tag
+  , KnownNat (GCstrLen (GPokeBaseLenTF tag) l)
+  ) => GPoke tag (l :*: r) where
     -- TODO moved os and s0 to RHS because base is const and those aren't?
     -- will this change anything?? idk!!!!
     gPoke (l :*: r) base# = \os# s0 ->
-        case gPoke @idx l base# os# s0 of
-          s1 -> gPoke @idx r base# (os# +# sizeOf' @idx @(UnwrapGenericS1 l) proxy#) s1
+        case gPoke @tag l base# os# s0 of
+          s1 -> gPoke @tag r base# (os# +# lLen#) s1
+      where
+        !(I# lLen#) = natValInt @(GCstrLen (GPokeBaseLenTF tag) l)
 
-instance (GPokeBase idx, GPokeBaseC idx a) => GPoke idx (S1 c (Rec0 a)) where
-    gPoke = gPokeBase @idx . unK1 . unM1
+instance (GPokeBase tag, GPokeBaseC tag a) => GPoke tag (S1 c (Rec0 a)) where
+    gPoke = gPokeBase @tag . unK1 . unM1
 
 -- | Wow, look! Nothing!
-instance GPoke idx U1 where gPoke U1 _base# = \_os# s0 -> s0
+instance GPoke tag U1 where gPoke U1 _base# = \_os# s0 -> s0

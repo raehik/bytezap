@@ -1,0 +1,13 @@
+{-# LANGUAGE UndecidableInstances #-} -- due to type family nesting
+
+module Bytezap.Common.Generic where
+
+import GHC.Generics
+import GHC.TypeNats
+import Data.Kind
+
+-- | Little type family for traversing a generic constructor rep.
+type family GCstrLen (toLen :: Type -> Natural) (gf :: k -> Type) :: Natural where
+    GCstrLen _     U1         = 0
+    GCstrLen toLen (K1 i c)   = toLen c
+    GCstrLen toLen (l :*: r)  = GCstrLen toLen l + GCstrLen toLen r
