@@ -26,7 +26,7 @@ module Bytezap.Struct.Generic where
 import Bytezap.Struct
 import GHC.Generics
 import GHC.Exts
-import Bytezap.Common.Generic ( type GCstrLen )
+import Bytezap.Common.Generic ( type GTFoldMapCAddition )
 import Data.Kind
 import GHC.TypeNats
 import Util.TypeNats ( natValInt )
@@ -62,15 +62,16 @@ instance
   ( GPoke tag l
   , GPoke tag r
   , GPokeBase tag
-  , KnownNat (GCstrLen (GPokeBaseLenTF tag) l)
+  , lenL ~ GTFoldMapCAddition (GPokeBaseLenTF tag) l
+  , KnownNat lenL
   ) => GPoke tag (l :*: r) where
     -- TODO moved os and s0 to RHS because base is const and those aren't?
     -- will this change anything?? idk!!!!
     gPoke (l :*: r) base# = \os# s0 ->
         case gPoke @tag l base# os# s0 of
-          s1 -> gPoke @tag r base# (os# +# lLen#) s1
+          s1 -> gPoke @tag r base# (os# +# lenL#) s1
       where
-        !(I# lLen#) = natValInt @(GCstrLen (GPokeBaseLenTF tag) l)
+        !(I# lenL#) = natValInt @lenL
 
 instance (GPokeBase tag, GPokeBaseC tag a) => GPoke tag (S1 c (Rec0 a)) where
     gPoke = gPokeBase @tag . unK1 . unM1

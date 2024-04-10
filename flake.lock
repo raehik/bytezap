@@ -18,6 +18,22 @@
         "type": "github"
       }
     },
+    "generic-type-functions": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1712783923,
+        "narHash": "sha256-ZTWotMygjnlJn0tMonEtFgnowRm7Xo7B8tVT+aWqbLA=",
+        "owner": "raehik",
+        "repo": "generic-type-functions",
+        "rev": "95bb0e3f48ac9c54309fad31ab787efb67b8ee90",
+        "type": "github"
+      },
+      "original": {
+        "owner": "raehik",
+        "repo": "generic-type-functions",
+        "type": "github"
+      }
+    },
     "haskell-flake": {
       "locked": {
         "lastModified": 1709467224,
@@ -70,6 +86,7 @@
     "root": {
       "inputs": {
         "flake-parts": "flake-parts",
+        "generic-type-functions": "generic-type-functions",
         "haskell-flake": "haskell-flake",
         "nixpkgs": "nixpkgs"
       }

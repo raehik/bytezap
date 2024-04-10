@@ -9,7 +9,7 @@ import GHC.Exts
 import Data.Kind
 import GHC.TypeNats
 import Util.TypeNats ( natValInt )
-import Bytezap.Common.Generic ( type GCstrLen )
+import Bytezap.Common.Generic ( type GTFoldMapCAddition )
 import DeFun.Core ( type (~>) )
 
 class GParseBase tag where
@@ -23,6 +23,8 @@ class GParseBase tag where
         :: GParseBaseC tag a
         => ParserT (GParseBaseSt tag) (GParseBaseE tag) a
 
+    -- | Defunctionalization symbol for a type family turning 'Type's into
+    --   'Natural's. (Needed as we can't partially apply type families.)
     type GParseBaseLenTF tag :: Type ~> Natural
 
 class GParse tag gf where
@@ -37,11 +39,12 @@ instance
   ( GParse tag l
   , GParse tag r
   , GParseBase tag
-  , KnownNat (GCstrLen (GParseBaseLenTF tag) l)
+  , lenL ~ GTFoldMapCAddition (GParseBaseLenTF tag) l
+  , KnownNat lenL
   ) => GParse tag (l :*: r) where
     gParse = sequenceParsers len (:*:) (gParse @tag) (gParse @tag)
       where
-        len = natValInt @(GCstrLen (GParseBaseLenTF tag) l)
+        len = natValInt @lenL
 
 instance (GParseBase tag, GParseBaseC tag a) => GParse tag (S1 c (Rec0 a)) where
     gParse = (M1 . K1) <$> gParseBase @tag

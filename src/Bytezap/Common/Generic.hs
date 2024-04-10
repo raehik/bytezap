@@ -1,14 +1,16 @@
-{-# LANGUAGE UndecidableInstances #-} -- due to type family nesting
-
 module Bytezap.Common.Generic where
 
-import GHC.Generics
 import GHC.TypeNats
-import Data.Kind
-import DeFun.Core ( type (~>), type (@@) )
+import DeFun.Core ( type (~>), type App )
+import Generic.Type.Function.FoldMap ( type GTFoldMapC )
 
-type family GCstrLen (toLen :: Type ~> Natural) (gf :: k -> Type) :: Natural where
-    GCstrLen _     U1          = 0
-    GCstrLen toLen (K1 i c)    = toLen @@ c
-    GCstrLen toLen (l :*: r)   = GCstrLen toLen l + GCstrLen toLen r
-    GCstrLen toLen (M1 _ _ gf) = GCstrLen toLen gf
+type PlusSym :: Natural ~> Natural ~> Natural
+data PlusSym f
+type instance App PlusSym f = PlusSym1 f
+
+type PlusSym1 :: Natural -> Natural ~> Natural
+data PlusSym1 l r
+type instance App (PlusSym1 l) r = l + r
+
+-- | Generic type 'foldMap' using the addition monoid.
+type GTFoldMapCAddition f gf = GTFoldMapC PlusSym 0 f gf
