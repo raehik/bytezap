@@ -32,8 +32,8 @@ instance ByteSwap Double where
     byteSwap = castWord64ToDouble . byteSwap . castDoubleToWord64
 
 newtype ByteOrdered (end :: ByteOrder) a = ByteOrdered
-  { unByteOrdered :: a }
-    deriving (Ord, Eq, Show, Num) via a
+  { unByteOrdered :: a
+  } deriving (Ord, Eq, Show, Num, Real, Enum, Integral) via a
 
 -- | Newtype for easier instance derivation.
 newtype PrimByteSwapped a = PrimByteSwapped { unPrimByteSwapped :: a }
