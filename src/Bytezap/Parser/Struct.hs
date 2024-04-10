@@ -88,21 +88,22 @@ pattern Err# st e = (# st, (# | | (# e #) #) #)
 {-# complete OK#, Fail#, Err# #-}
 
 -- | caller must guarantee that buffer is long enough for parser!!
-unsafeRunParserBs :: B.ByteString -> Parser e a -> Result e a
+unsafeRunParserBs :: forall a e. B.ByteString -> Parser e a -> Result e a
 unsafeRunParserBs (B.BS fptr _) = unsafeRunParserFPtr fptr
 
 -- | caller must guarantee that buffer is long enough for parser!!
-unsafeRunParserPtr :: Ptr Word8 -> Parser e a -> Result e a
+unsafeRunParserPtr :: forall a e. Ptr Word8 -> Parser e a -> Result e a
 unsafeRunParserPtr (Ptr base#) = unsafeRunParser' base# FinalPtr
 
 -- | caller must guarantee that buffer is long enough for parser!!
-unsafeRunParserFPtr :: ForeignPtr Word8 -> Parser e a -> Result e a
+unsafeRunParserFPtr :: forall a e. ForeignPtr Word8 -> Parser e a -> Result e a
 unsafeRunParserFPtr fptr p =
     unsafePerformIO $ B.unsafeWithForeignPtr fptr $ \ptr ->
         pure $ unsafeRunParserPtr ptr p
 
 -- | caller must guarantee that buffer is long enough for parser!!
-unsafeRunParser' :: Addr# -> ForeignPtrContents -> Parser e a -> Result e a
+unsafeRunParser'
+    :: forall a e. Addr# -> ForeignPtrContents -> Parser e a -> Result e a
 unsafeRunParser' base# fpc (ParserT p) =
     case p fpc base# 0# proxy# of
       OK#   _st1 a -> OK a
