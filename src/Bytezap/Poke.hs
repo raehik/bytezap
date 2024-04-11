@@ -95,3 +95,8 @@ replicateByte (I# len#) (W8# byte#) = Poke $ \base# os# s0 ->
 fromStructPoke :: Int -> Struct.Poke s -> Poke s
 fromStructPoke (I# len#) (Struct.Poke p) = Poke $ \base# os# s ->
     (# p base# os# s, os# +# len# #)
+
+-- | Use a struct poke as a regular poke by throwing away the return offset.
+toStructPoke :: Poke s -> Struct.Poke s
+toStructPoke (Poke p) = Struct.Poke $ \base# os0# s0 ->
+    case p base# os0# s0 of (# s1, _os1# #) -> s1
