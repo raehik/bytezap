@@ -1,3 +1,11 @@
+## 1.2.0 (2024-04-11)
+* fix type-level generic blen type family (needed defunctionalization)
+  * split out into its own even _more_ abstract library, generic-type-functions
+* add missing instance Integral (ByteOrdered end a)
+* add struct parser! design taken from flatparse. barebones combinators
+  * add type-level byte parsing. hahahaha
+* add `Bytezap.Poke.toStructPoke :: Poke s -> Struct.Poke s`
+
 ## 1.1.0 (2024-04-05)
 * add struct serializer
 * add type-level bytestring utilities (generalized from binrep)
