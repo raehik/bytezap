@@ -23,7 +23,7 @@ compile time. So I'm fairly confident that this is the best you're gonna get.
 
 module Bytezap.Struct.TypeLits.Bytes where
 
-import Raehik.TypeLevelBytes
+import Data.Type.Byte
 import Bytezap.Struct ( Poke, sequencePokes, emptyPoke, prim )
 import Numeric.Natural ( Natural )
 

@@ -8,7 +8,7 @@ parsing does less work and allocation.
 
 module Bytezap.Parser.Struct.TypeLits.Bytes where
 
-import Raehik.TypeLevelBytes
+import Data.Type.Byte
 import Bytezap.Parser.Struct ( ParserT, prim, withLit, constParse )
 import Numeric.Natural ( Natural )
 

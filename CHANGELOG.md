@@ -1,3 +1,6 @@
+## Unreleased
+* move type-level byte stuff to another package
+
 ## 1.2.0 (2024-04-11)
 * fix type-level generic blen type family (needed defunctionalization)
   * split out into its own even _more_ abstract library, generic-type-functions

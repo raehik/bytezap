@@ -60,6 +60,7 @@ dependencies:
 - text >= 2.0.2 && < 2.2
 - defun-core ^>= 0.1
 - generic-type-functions ^>= 0.1.0
+- type-level-bytestrings ^>= 0.1.0
 
 library:
   source-dirs: src

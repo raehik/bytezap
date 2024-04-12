@@ -1,11 +1,12 @@
+[hackage-binrep]: https://hackage.haskell.org/package/binrep
+
 # bytezap
 Build strict bytestrings with zero intermediate allocation.
 
 If you're looking for general high-performance serialization, you probably want
 [mason](https://hackage.haskell.org/package/mason). But if you're dealing with
 data that is already "shaped" like binary data, e.g. using types defined in
-[binrep](https://hackage.haskell.org/package/binrep), and you want the best
-performance possible, read on...
+[binrep][hackage-binrep], and you want the best performance possible, read on...
 
 ## Why?
 Most binary serialization libraries tend towards a model where the serializer
@@ -36,7 +37,14 @@ library such as mason.
 ## So... why?
 Well, bytezap will be slightly faster where it's applicable, and the
 implementation is extremely simple. It's a fun niche to fill, and it's
-convenient for my [binrep](https://hackage.haskell.org/package/binrep) library.
+convenient for my [binrep][hackage-binrep] library.
+
+## Struct handling
+We define even simpler parser & serializer types which can only handle "C
+struct"-like types, where there is only one constructor and all fields have
+known length at compile time. The way these work, GHC is pretty much guaranteed
+to generate the fastest code possible. These are very experimental, but see
+[binrep][hackage-binrep] for example usage.
 
 ## Non-features
 ### Serialize to `ByteString` (pinned byte arrays) only
