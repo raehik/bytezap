@@ -11,9 +11,10 @@ module Bytezap.Parser.Struct.TypeLits.Bytes where
 import Data.Type.Byte
 import Bytezap.Parser.Struct ( ParserT, prim, withLit, constParse )
 import Numeric.Natural ( Natural )
+import Data.Void ( Void )
 
 class ParseReifyBytesW64 (ns :: [Natural]) where
-    parseReifyBytesW64 :: ParserT st e ()
+    parseReifyBytesW64 :: ParserT st Void ()
 
 -- | Enough bytes to make a 'Word64'.
 instance {-# OVERLAPPING #-}
