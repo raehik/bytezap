@@ -95,11 +95,11 @@
     "type-level-bytestrings": {
       "flake": false,
       "locked": {
-        "lastModified": 1712964201,
-        "narHash": "sha256-gBklE0kLARrwhksP+nnyHEptQj4xyjIF9z1Hj+5hgNs=",
+        "lastModified": 1716656662,
+        "narHash": "sha256-7Wp8LWvYNqDKCiizYq9E/2oBvGNC0PI6pNspeamV4N4=",
         "owner": "raehik",
         "repo": "type-level-bytestrings",
-        "rev": "509b240f87c034efdcf2b77f164fad0b0b3b8253",
+        "rev": "3a9979cfb53817a025adc0bd0819e917714dfe2a",
         "type": "github"
       },
       "original": {

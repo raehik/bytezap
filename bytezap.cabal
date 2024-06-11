@@ -76,5 +76,5 @@ library
     , generic-type-functions >=0.1.0 && <0.2
     , primitive >=0.8.0.0 && <0.10.0.0
     , text >=2.0.2 && <2.2
-    , type-level-bytestrings >=0.1.0 && <0.2
+    , type-level-bytestrings >=0.1.0 && <0.3
   default-language: GHC2021
