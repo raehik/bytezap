@@ -23,6 +23,7 @@ That reminds me, TODO could easily provide some TH too, and again compare.
 module Bytezap.Struct where
 
 import GHC.Exts
+import Raehik.Compat.GHC.Exts.GHC908MemcpyPrimops ( setAddrRange# )
 import Raehik.Compat.Data.Primitive.Types
 
 import Control.Monad.Primitive ( MonadPrim, primitive )
@@ -31,7 +32,6 @@ import Data.ByteString qualified as BS
 import Data.ByteString.Internal qualified as BS
 
 import GHC.Word ( Word8(W8#) )
-import Raehik.Compat.GHC.Exts.GHC908MemcpyPrimops ( setAddrRange# )
 
 -- | A struct poker: base address (constant), byte offset, state token.
 --

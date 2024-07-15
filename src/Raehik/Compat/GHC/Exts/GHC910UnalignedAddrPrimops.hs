@@ -1,3 +1,6 @@
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE UnboxedTuples #-}
+
 {-
 (index|read|write)<ty>OffAddr# primops fail when unaligned on platforms not
 supporting unaligned accesses. GHC 9.10 introduces new primops that handle
@@ -9,20 +12,45 @@ Note that GC-managed addresses already have these primops. This is for 'Addr#',
 non-GC-managed.
 
 Import this module unqualified along with 'GHC.Exts' .
+
+On supported GHCs, we simply re-export. This means unused import warnings.
+Sorry idk how to fix that.
 -}
 
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE UnboxedTuples #-}
+module Raehik.Compat.GHC.Exts.GHC910UnalignedAddrPrimops
+  ( indexWord8OffAddrAsWord16#
+  , indexWord8OffAddrAsWord32#
+  , indexWord8OffAddrAsWord64#
+  , indexWord8OffAddrAsWord#
+  , indexWord8OffAddrAsInt16#
+  , indexWord8OffAddrAsInt32#
+  , indexWord8OffAddrAsInt64#
+  , indexWord8OffAddrAsInt#
+  , readWord8OffAddrAsWord16#
+  , readWord8OffAddrAsWord32#
+  , readWord8OffAddrAsWord64#
+  , readWord8OffAddrAsWord#
+  , readWord8OffAddrAsInt16#
+  , readWord8OffAddrAsInt32#
+  , readWord8OffAddrAsInt64#
+  , readWord8OffAddrAsInt#
+  , writeWord8OffAddrAsWord16#
+  , writeWord8OffAddrAsWord32#
+  , writeWord8OffAddrAsWord64#
+  , writeWord8OffAddrAsWord#
+  , writeWord8OffAddrAsInt16#
+  , writeWord8OffAddrAsInt32#
+  , writeWord8OffAddrAsInt64#
+  , writeWord8OffAddrAsInt#
+  ) where
 
-module Raehik.Compat.GHC.Exts.GHC910UnalignedAddrPrimops where
+import GHC.Exts
 
 #if MIN_VERSION_base(4,20,0)
 
--- These should be in base-4.20.0.0.
+-- These should all be imported from GHC.Exts, so above is simply re-exporting.
 
 #else
-
-import GHC.Exts
 
 indexWord8OffAddrAsWord16# :: Addr# -> Int# -> Word16#
 indexWord8OffAddrAsWord16# addr# os# =
