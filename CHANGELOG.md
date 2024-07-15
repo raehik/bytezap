@@ -1,3 +1,6 @@
+## 1.3.1 (2024-07-15)
+* fix building on GHC 9.8 and probably 9.10
+
 ## 1.3.0 (2024-04-13)
 * move type-level byte stuff to another package
 
