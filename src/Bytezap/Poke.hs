@@ -1,11 +1,10 @@
-{-# LANGUAGE CPP #-} -- for a bytestring version gate >:(
 {-# LANGUAGE UnboxedTuples #-}
 
 -- may as well export everything the interface is highly unsafe
 module Bytezap.Poke where
 
 import GHC.Exts
-import Raehik.Compat.GHC.Exts.GHC908MemcpyPrimops
+import Raehik.Compat.GHC.Exts.GHC908MemcpyPrimops qualified as MemcpyPrimops
 
 import GHC.Word ( Word8(W8#) )
 
@@ -22,16 +21,45 @@ import Control.Monad.Primitive
 
 import Bytezap.Struct qualified as Struct
 
-type Poke# s = Addr# -> Int# -> State# s -> (# State# s, Int# #)
+{- | Unboxed buffer write operation.
+
+The next offset must be greater than or equal to the input buffer offset.
+This is not checked.
+
+Note that the only way to find out the length of a write is to perform it. But
+you can't perform a length without providing a correctly-sized buffer. Thus, you
+may only use a 'Poke#' when you have a buffer large enough to fit its maximum
+write length-- which in turn means means you must track write lengths
+separately. ('Bytezap.Write.Write' does this.)
+
+I provide this highly unsafe, seemingly unhelpful type because it's a
+requirement for 'Bytezap.Write.Write', and here I can guarantee performance
+better because I don't need to worry about laziness.
+
+We cannot be polymorphic on the pointer type unless we box the pointer.
+We thus limit ourselves to writing to 'Addr#'s, and not 'MutableByteArray#'s.
+(I figure we're most interested in @ByteString@s, which use 'Addr#'.)
+
+Note that if we did provide write length, then the next offset might appear
+superfluous. But that next offset is usually already calculated, and may be
+passed directly to sequenced writes, unlike if we returned a write length which
+would need to be added to the original offset.
+-}
+type Poke# s =
+     Addr#                {- ^ buffer pointer -}
+  -> Int#                 {- ^ buffer offset -}
+  -> State# s             {- ^ state token -}
+  -> (# State# s, Int# #) {- ^ (state token, next offset) -}
 
 -- | Poke newtype wrapper.
 newtype Poke s = Poke { unPoke :: Poke# s }
 
--- | Sequence two 'Poke's left-to-right.
+-- | Sequence two buffer writes left-to-right.
 instance Semigroup (Poke s) where
     Poke l <> Poke r = Poke $ \base# os0# s0 ->
         case l base# os0# s0 of (# s1, os1# #) -> r base# os1# s1
 
+-- | The empty buffer write simply returns its state token and offset.
 instance Monoid (Poke s) where
     mempty = Poke $ \_base# os# s -> (# s, os# #)
 
@@ -68,7 +96,7 @@ prim a = Poke $ \base# os# s0 ->
 byteString :: BS.ByteString -> Poke RealWorld
 byteString (BS.BS (ForeignPtr p# r) (I# len#)) = Poke $ \base# os# s0 ->
     keepAlive# r s0 $ \s1 ->
-        case copyAddrToAddrNonOverlapping# p# (base# `plusAddr#` os#) len# s1 of
+        case MemcpyPrimops.copyAddrToAddrNonOverlapping# p# (base# `plusAddr#` os#) len# s1 of
           s2 -> (# s2, os# +# len# #)
 
 byteArray# :: ByteArray# -> Int# -> Int# -> Poke s
@@ -79,7 +107,7 @@ byteArray# ba# baos# balen# = Poke $ \base# os# s0 ->
 -- | essentially memset
 replicateByte :: Int -> Word8 -> Poke RealWorld
 replicateByte (I# len#) (W8# byte#) = Poke $ \base# os# s0 ->
-    case setAddrRange# (base# `plusAddr#` os#) len# byteAsInt# s0 of
+    case MemcpyPrimops.setAddrRange# (base# `plusAddr#` os#) len# byteAsInt# s0 of
       s1 -> (# s1, os# +# len# #)
   where
     byteAsInt# = word2Int# (word8ToWord# byte#)

@@ -23,7 +23,7 @@ That reminds me, TODO could easily provide some TH too, and again compare.
 module Bytezap.Struct where
 
 import GHC.Exts
-import Raehik.Compat.GHC.Exts.GHC908MemcpyPrimops ( setAddrRange# )
+import Raehik.Compat.GHC.Exts.GHC908MemcpyPrimops qualified as GHCExtsCompat
 import Raehik.Compat.Data.Primitive.Types
 
 import Control.Monad.Primitive ( MonadPrim, primitive )
@@ -78,6 +78,6 @@ sequencePokes (Poke pl) (I# ll#) (Poke pr) = Poke $ \base# os# s0 -> do
 -- | essentially memset
 replicateByte :: Int -> Word8 -> Poke RealWorld
 replicateByte (I# len#) (W8# byte#) = Poke $ \base# os# s0 ->
-    setAddrRange# (base# `plusAddr#` os#) len# byteAsInt# s0
+    GHCExtsCompat.setAddrRange# (base# `plusAddr#` os#) len# byteAsInt# s0
   where
     byteAsInt# = word2Int# (word8ToWord# byte#)

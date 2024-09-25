@@ -2,41 +2,43 @@
 
 -- safe module, only export the safe bits (no @Write(..)@!!)
 module Bytezap.Write
-  ( Write(size, poke)
+  ( Write(writeLength, writeOp)
+  , LengthType(ExactLength, MaxLength)
   , runWriteBS, runWriteBSUptoN
   , prim, byteString, byteArray#, replicateByte
   ) where
 
 import Bytezap.Write.Internal
 
-import Bytezap.Poke qualified as P
+import Bytezap.Poke qualified as Poke
+import Bytezap.Poke ( Poke )
 import Raehik.Compat.Data.Primitive.Types
 import GHC.Exts
 import Data.ByteString qualified as BS
 import Data.Word ( Word8 )
 
-runWriteBS :: Write RealWorld -> BS.ByteString
-runWriteBS = runWriteWith P.unsafeRunPokeBS
+runWriteBS :: Write ExactLength RealWorld -> BS.ByteString
+runWriteBS = runWriteWith Poke.unsafeRunPokeBS
 
-runWriteBSUptoN :: Write RealWorld -> BS.ByteString
-runWriteBSUptoN = runWriteWith P.unsafeRunPokeBSUptoN
+runWriteBSUptoN :: Write MaxLength RealWorld -> BS.ByteString
+runWriteBSUptoN = runWriteWith Poke.unsafeRunPokeBSUptoN
 
 -- | Helper for writing 'Write' runners.
-runWriteWith :: forall a s. (Int -> P.Poke s -> a) -> Write s -> a
-runWriteWith runPoke (Write size poke) = runPoke size poke
+runWriteWith :: forall a s lt. (Int -> Poke s -> a) -> Write lt s -> a
+runWriteWith runPoke (Write l p) = runPoke l p
 
-prim :: forall a s. Prim' a => a -> Write s
-prim a = Write (sizeOf (undefined :: a)) (P.prim a)
+prim :: forall a s. Prim' a => a -> Write ExactLength s
+prim a = Write (sizeOf (undefined :: a)) (Poke.prim a)
 
-byteString :: BS.ByteString -> Write RealWorld
-byteString bs = Write (BS.length bs) (P.byteString bs)
+byteString :: BS.ByteString -> Write ExactLength RealWorld
+byteString bs = Write (BS.length bs) (Poke.byteString bs)
 
-byteArray# :: ByteArray# -> Int# -> Int# -> Write s
+byteArray# :: ByteArray# -> Int# -> Int# -> Write ExactLength s
 byteArray# ba# baos# balen# = Write{..}
   where
-    size = I# balen#
-    poke = P.byteArray# ba# baos# balen#
+    writeLength = I# balen#
+    writeOp     = Poke.byteArray# ba# baos# balen#
 
 -- | essentially memset
-replicateByte :: Int -> Word8 -> Write RealWorld
-replicateByte len byte = Write len (P.replicateByte len byte)
+replicateByte :: Int -> Word8 -> Write ExactLength RealWorld
+replicateByte len byte = Write len (Poke.replicateByte len byte)
