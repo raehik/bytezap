@@ -1,3 +1,9 @@
+## 1.4.0 (2024-09-25)
+* `Write` now takes a type-level `LengthType` to indicate how it should be used
+* rewrite type-level bytestring parsing: now with error handling!
+* re-fix GHC 9.8 build
+* add some weird wip code for failable serializers
+
 ## 1.3.1 (2024-07-15)
 * fix building on GHC 9.8 and probably 9.10
 
