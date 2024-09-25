@@ -180,7 +180,7 @@ because it's hard to tell if it would be faster with modern CPUs and compilers.
 -}
 withLitErr
     :: (Num a, FiniteBits a)
-    => (Int -> a -> e)
+    => (Int# -> Int -> a -> e)
     -> Int# -> a -> (Addr# -> Int# -> a) -> ParserT st e r -> ParserT st e r
 withLitErr fErr len# aLit p (ParserT pCont) = ParserT \fpc base# os# st ->
     let aParsed = p base# os#
@@ -188,7 +188,7 @@ withLitErr fErr len# aLit p (ParserT pCont) = ParserT \fpc base# os# st ->
         then pCont fpc base# (os# +# len#) st
         else let idxFail = firstNonMatchByteIdx aLit aParsed
                  bFailed = unsafeByteAt aParsed idxFail
-             in  Err# st (fErr idxFail bFailed)
+             in  Err# st (fErr os# idxFail bFailed)
 {-# INLINE withLitErr #-}
 
 -- | Given two non-equal words @wActual@ and @wExpect@, return the index of the

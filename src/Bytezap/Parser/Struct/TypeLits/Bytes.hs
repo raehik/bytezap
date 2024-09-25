@@ -30,14 +30,14 @@ import Bytezap.Parser.Struct
 import Data.Word ( Word8 )
 import GHC.TypeNats ( Natural, type (+), KnownNat )
 import Data.Type.Byte ( ReifyW8, reifyW64, reifyW32, reifyW16, reifyW8 )
-import GHC.Exts ( (+#), Int(I#), Int#, Addr# )
+import GHC.Exts ( (+#), (-#), Int(I#), Int#, Addr# )
 import Util.TypeNats ( natValInt )
 import Raehik.Compat.Data.Primitive.Types ( indexWord8OffAddrAs# )
 import Data.Bits
 
 -- | Parse a type-level bytestring, largest grouping 'Word64'.
 class ParseReifyBytesW64 (idx :: Natural) (bs :: [Natural]) where
-    parseReifyBytesW64 :: (Int -> Word8 -> e) -> ParserT st e ()
+    parseReifyBytesW64 :: a -> (Int -> Int -> Word8 -> e) -> ParserT st e a
 
 -- | Enough bytes to make a 'Word64'.
 instance {-# OVERLAPPING #-}
@@ -65,7 +65,7 @@ instance ParseReifyBytesW32 idx bs => ParseReifyBytesW64 idx bs where
 
 -- | Parse a type-level bytestring, largest grouping 'Word32'.
 class ParseReifyBytesW32 (idx :: Natural) (bs :: [Natural]) where
-    parseReifyBytesW32 :: (Int -> Word8 -> e) -> ParserT st e ()
+    parseReifyBytesW32 :: a -> (Int -> Int -> Word8 -> e) -> ParserT st e a
 
 -- | Enough bytes to make a 'Word32'.
 instance {-# OVERLAPPING #-}
@@ -89,7 +89,7 @@ instance ParseReifyBytesW16 idx bs => ParseReifyBytesW32 idx bs where
 
 -- | Parse a type-level bytestring, largest grouping 'Word16'.
 class ParseReifyBytesW16 (idx :: Natural) (bs :: [Natural]) where
-    parseReifyBytesW16 :: (Int -> Word8 -> e) -> ParserT st e ()
+    parseReifyBytesW16 :: a -> (Int -> Int -> Word8 -> e) -> ParserT st e a
 
 -- | Enough bytes to make a 'Word16'.
 instance {-# OVERLAPPING #-}
@@ -111,7 +111,7 @@ instance ParseReifyBytesW8 idx bs => ParseReifyBytesW16 idx bs where
 
 -- | Serialize a type-level bytestring, byte-by-byte.
 class ParseReifyBytesW8 (idx :: Natural) (bs :: [Natural]) where
-    parseReifyBytesW8 :: (Int -> Word8 -> e) -> ParserT st e ()
+    parseReifyBytesW8 :: a -> (Int -> Int -> Word8 -> e) -> ParserT st e a
 
 -- | Parse the next byte.
 instance
@@ -120,27 +120,28 @@ instance
   , ParseReifyBytesW8 (idx+1) bs
   ) => ParseReifyBytesW8 idx (b0 ': bs) where
     {-# INLINE parseReifyBytesW8 #-}
-    parseReifyBytesW8 f = ParserT $ \fpc base# os# st ->
+    parseReifyBytesW8 a f = ParserT $ \fpc base# os# st ->
         let bExpect = reifyW8 @b0
             bActual = indexWord8OffAddrAs# base# os#
             idx     = natValInt @idx
         in  if   bExpect == bActual
-            then runParserT# (parseReifyBytesW8 @(idx+1) @bs f) fpc base# (os# +# 1#) st
-            else Err# st (f idx bActual)
+            then runParserT# (parseReifyBytesW8 @(idx+1) @bs a f) fpc base# (os# +# 1#) st
+            else Err# st (f (I# os# - idx) idx bActual)
 
 -- | End of the line.
 instance ParseReifyBytesW8 idx '[] where
     {-# INLINE parseReifyBytesW8 #-}
-    parseReifyBytesW8 _f = ParserT $ \_fpc _base# _os# st -> OK# st ()
+    parseReifyBytesW8 a _f = ParserT $ \_fpc _base# _os# st -> OK# st a
 
 parseReifyBytesHelper
-    :: forall (idx :: Natural) (len :: Natural) a e st
-    .  (KnownNat idx, KnownNat len, Integral a, FiniteBits a)
-    => a -> (Addr# -> Int# -> a)
-    -> ((Int -> Word8 -> e) -> ParserT st e ())
-    -> (Int -> Word8 -> e) -> ParserT st e ()
-parseReifyBytesHelper a indexWord8OffAddrAsA# pCont f = withLitErr
-    (\idx b -> f (natValInt @idx + idx) (fromIntegral b))
-    len# a indexWord8OffAddrAsA# (pCont f)
+    :: forall (idx :: Natural) (len :: Natural) w a e st
+    .  (KnownNat idx, KnownNat len, Integral w, FiniteBits w)
+    => w -> (Addr# -> Int# -> w)
+    -> (a -> (Int -> Int -> Word8 -> e) -> ParserT st e a)
+    -> a -> (Int -> Int -> Word8 -> e) -> ParserT st e a
+parseReifyBytesHelper w indexWord8OffAddrAsA# pCont a f = withLitErr
+    (\os# chIdx b -> f (I# (os# -# idx#)) (idx + chIdx) (fromIntegral b))
+    len# w indexWord8OffAddrAsA# (pCont a f)
   where
-    !(I# len#) = natValInt @len
+    !(I# len#)     = natValInt @len
+    !idx@(I# idx#) = natValInt @idx
