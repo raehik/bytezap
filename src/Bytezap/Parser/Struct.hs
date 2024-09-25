@@ -23,6 +23,11 @@ import System.IO.Unsafe ( unsafePerformIO )
 
 import Raehik.Compat.Data.Primitive.Types
 
+import Data.Bits
+  ( Bits( (.&.), unsafeShiftR, xor )
+  , FiniteBits(countTrailingZeros)
+  )
+
 type PureMode = Proxy# Void
 type IOMode   = State# RealWorld
 type STMode s = State# s
@@ -34,6 +39,9 @@ type ParserT# (st :: ZeroBitType) e a =
     -> st    {- ^ state token -}
     -> Res# st e a
 
+-- | Like flatparse, but no buffer length (= no buffer overflow checking), and
+--   no 'Addr#' on success (= no dynamic length parses).
+--
 -- we take a 'ForeignPtrContents' because it lets us create bytestrings without
 -- copying if we want. it's useful
 newtype ParserT (st :: ZeroBitType) e a =
@@ -64,6 +72,8 @@ type Res# (st :: ZeroBitType) e a =
   (# st, ResI# e a #)
 
 -- | Primitive parser result.
+--
+-- Like flatparse, but no 'Addr#' on success.
 type ResI# e a =
   (#
     (# a #)
@@ -107,8 +117,8 @@ unsafeRunParser'
 unsafeRunParser' base# fpc (ParserT p) =
     case p fpc base# 0# proxy# of
       OK#   _st1 a -> OK a
-      Fail# _st1   -> Fail
       Err#  _st1 e -> Err e
+      Fail# _st1   -> Fail
 
 -- | Higher-level boxed data type for parsing results.
 data Result e a =
@@ -127,16 +137,17 @@ sequenceParsers
 sequenceParsers (I# len#) f (ParserT pa) (ParserT pb) =
     ParserT \fpc base os# st0 ->
         case pa fpc base os# st0 of
-          Fail# st1 ->  Fail# st1
-          Err# st1 e -> Err# st1 e
           OK# st1 a ->
             case pb fpc base (os# +# len#) st1 of
+              OK# st2 b -> OK# st2 (f a b)
               Fail# st2 ->  Fail# st2
               Err# st2 e -> Err# st2 e
-              OK# st2 b -> OK# st2 (f a b)
+          Err# st1 e -> Err# st1 e
+          Fail# st1 ->  Fail# st1
 
 -- TODO using indexWord8OffAddrAs to permit pure mode. flatparse does this (at
 -- least for integers). guess it's OK?
+-- TODO this doesn't use the state token. scary.
 prim :: forall a st e. Prim' a => ParserT st e a
 prim = ParserT \_fpc base os st ->
     case indexWord8OffAddrAs# base os of a -> OK# st a
@@ -145,16 +156,55 @@ prim = ParserT \_fpc base os st ->
 lit :: Eq a => a -> ParserT st e a -> ParserT st e ()
 lit al (ParserT p) = ParserT \fpc base os st0 ->
     case p fpc base os st0 of
-      Fail# st1    -> Fail# st1
-      Err#  st1 e  -> Err#  st1 e
       OK#   st1 ar -> if al == ar then OK# st1 () else Fail# st1
+      Err#  st1 e  -> Err#  st1 e
+      Fail# st1    -> Fail# st1
 
 -- | parse literal (CPS)
 withLit
     :: Eq a => Int# -> a -> ParserT st e a -> ParserT st e r -> ParserT st e r
 withLit len# al (ParserT p) (ParserT pCont) = ParserT \fpc base os# st0 ->
     case p fpc base os# st0 of
-      Fail# st1    -> Fail# st1
-      Err#  st1 e  -> Err#  st1 e
       OK#   st1 ar ->
         if al == ar then pCont fpc base (os# +# len#) st1 else Fail# st1
+      Err#  st1 e  -> Err#  st1 e
+      Fail# st1    -> Fail# st1
+
+{- | parse literal, return first (leftmost) failing byte on error (CPS)
+
+This can be used to parse large literals via chunking, rather than byte-by-byte,
+while retaining useful error behaviour.
+
+We don't check equality with XOR even though we use that when handling errors,
+because it's hard to tell if it would be faster with modern CPUs and compilers.
+-}
+withLitErr
+    :: (Num a, FiniteBits a)
+    => (Int -> a -> e)
+    -> Int# -> a -> (Addr# -> Int# -> a) -> ParserT st e r -> ParserT st e r
+withLitErr fErr len# aLit p (ParserT pCont) = ParserT \fpc base# os# st ->
+    let aParsed = p base# os#
+    in  if   aLit == aParsed
+        then pCont fpc base# (os# +# len#) st
+        else let idxFail = firstNonMatchByteIdx aLit aParsed
+                 bFailed = unsafeByteAt aParsed idxFail
+             in  Err# st (fErr idxFail bFailed)
+{-# INLINE withLitErr #-}
+
+-- | Given two non-equal words @wActual@ and @wExpect@, return the index of the
+--   first non-matching byte. Zero indexed.
+--
+-- If both words are equal, returns word_size (e.g. 4 for 'Word32').
+firstNonMatchByteIdx :: FiniteBits a => a -> a -> Int
+firstNonMatchByteIdx wExpect wActual =
+    countTrailingZeros (wExpect `xor` wActual) `unsafeShiftR` 3
+{-# INLINE firstNonMatchByteIdx #-}
+
+-- | Get the byte at the given index.
+--
+-- The return value is guaranteed to be 0x00 - 0xFF (inclusive).
+--
+-- TODO meaning based on endianness?
+unsafeByteAt :: (Num a, Bits a) => a -> Int -> a
+unsafeByteAt a idx = (a `unsafeShiftR` (idx * 8)) .&. 0xFF
+{-# INLINE unsafeByteAt #-}
