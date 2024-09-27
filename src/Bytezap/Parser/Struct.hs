@@ -33,17 +33,26 @@ type IOMode   = State# RealWorld
 type STMode s = State# s
 
 type ParserT# (st :: ZeroBitType) e a =
-       ForeignPtrContents {- ^ pointer provenance -}
-    -> Addr# {- ^ base address -}
-    -> Int#  {- ^ cursor offset from base -}
-    -> st    {- ^ state token -}
-    -> Res# st e a
+       ForeignPtrContents {- ^ pointer provenance (does not change) -}
+    -> Addr#              {- ^ base address (does not change) -}
+    -> Int#               {- ^ cursor offset from base -}
+    -> st                 {- ^ state token -}
+    -> Res# st e a        {- ^ result -}
 
--- | Like flatparse, but no buffer length (= no buffer overflow checking), and
---   no 'Addr#' on success (= no dynamic length parses).
---
--- we take a 'ForeignPtrContents' because it lets us create bytestrings without
--- copying if we want. it's useful
+{- | Like flatparse, but no buffer length (= no buffer overflow checking), and
+     no 'Addr#' on success (= no dynamic length parses).
+
+Unlike flatparse, we separate base address from offset, rather than adding
+them. This fits the unaligned 'Addr#' primops (added in GHC 9.10) better, and
+in my head should hopefully assist in emitting immediates where possible for
+offsets on the assembly level.
+
+Combining them like in flatparse might be faster; but I really don't know how to
+find out, without doing both and comparing various examples. After a lot of
+scratching my head, I think this is most appropriate.
+
+The 'ForeignPtrContents' is for keeping the 'Addr#' data in scope.
+-}
 newtype ParserT (st :: ZeroBitType) e a =
     ParserT { runParserT# :: ParserT# st e a }
 
@@ -179,16 +188,17 @@ We don't check equality with XOR even though we use that when handling errors,
 because it's hard to tell if it would be faster with modern CPUs and compilers.
 -}
 withLitErr
-    :: (Num a, FiniteBits a)
-    => (Int# -> Int -> a -> e)
-    -> Int# -> a -> (Addr# -> Int# -> a) -> ParserT st e r -> ParserT st e r
-withLitErr fErr len# aLit p (ParserT pCont) = ParserT \fpc base# os# st ->
+    :: (Integral a, FiniteBits a)
+    => Int# -> a -> Int -> (Addr# -> Int# -> a)
+    -> ParserT st (Int, Word8) r
+    -> ParserT st (Int, Word8) r
+withLitErr len# aLit idxStart p (ParserT pCont) = ParserT \fpc base# os# st ->
     let aParsed = p base# os#
     in  if   aLit == aParsed
         then pCont fpc base# (os# +# len#) st
         else let idxFail = firstNonMatchByteIdx aLit aParsed
                  bFailed = unsafeByteAt aParsed idxFail
-             in  Err# st (fErr os# idxFail bFailed)
+             in  Err# st (idxStart + idxFail, fromIntegral bFailed)
 {-# INLINE withLitErr #-}
 
 -- | Given two non-equal words @wActual@ and @wExpect@, return the index of the
