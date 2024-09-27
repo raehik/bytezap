@@ -6,13 +6,12 @@
   };
   outputs = inputs:
   let
-    # simple devshell for non-dev compilers: really just want `cabal repl`
-    nondevDevShell = compiler: {
-      mkShellArgs.name = "${compiler}-bytezap";
+    defDevShell = compiler: {
+      mkShellArgs.name = "${compiler}";
       hoogle = false;
       tools = _: {
-        hlint = null;
         haskell-language-server = null;
+        hlint = null;
         ghcid = null;
       };
     };
@@ -21,26 +20,23 @@
       systems = inputs.nixpkgs.lib.systems.flakeExposed;
       imports = [ inputs.haskell-flake.flakeModule ];
       perSystem = { self', pkgs, config, ... }: {
-        packages.default  = self'.packages.ghc96-bytezap;
-        devShells.default = self'.devShells.ghc96;
+        packages.default  = self'.packages.ghc98-bytezap;
+        devShells.default = self'.devShells.ghc98;
         haskellProjects.ghc98 = {
           basePackages = pkgs.haskell.packages.ghc98;
-          devShell = nondevDevShell "ghc98";
+          devShell = defDevShell "ghc98";
         };
         haskellProjects.ghc96 = {
           basePackages = pkgs.haskell.packages.ghc96;
-          devShell.mkShellArgs.name = "ghc96-bytezap";
-          devShell.tools = _: {
-            haskell-language-server = null; # 2024-03-06: broken
-          };
+          devShell = defDevShell "ghc96";
         };
         haskellProjects.ghc94 = {
           basePackages = pkgs.haskell.packages.ghc94;
-          devShell = nondevDevShell "ghc94";
+          devShell = defDevShell "ghc94";
         };
         haskellProjects.ghc92 = {
           basePackages = pkgs.haskell.packages.ghc92;
-          devShell = nondevDevShell "ghc92";
+          devShell = defDevShell "ghc92";
         };
       };
     };
