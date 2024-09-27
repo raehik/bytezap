@@ -30,7 +30,7 @@ import Bytezap.Parser.Struct
 import Data.Word ( Word8 )
 import GHC.TypeNats ( Natural, type (+), KnownNat )
 import Data.Type.Byte ( ReifyW8, reifyW64, reifyW32, reifyW16, reifyW8 )
-import GHC.Exts ( (+#), (-#), Int(I#), Int#, Addr# )
+import GHC.Exts ( (+#), Int(I#), Int#, Addr# )
 import Util.TypeNats ( natValInt )
 import Raehik.Compat.Data.Primitive.Types ( indexWord8OffAddrAs# )
 import Data.Bits
