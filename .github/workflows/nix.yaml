@@ -5,7 +5,7 @@ on:
   pull_request:
 
 jobs:
-  nix:
+  nix-build:
     runs-on: ubuntu-latest
     permissions:
       id-token: "write"
