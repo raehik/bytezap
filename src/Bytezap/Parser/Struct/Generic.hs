@@ -1,6 +1,8 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE UndecidableInstances #-} -- thanks to type manipulation
 
+-- TODO pass metadata to parser for errors. not hard just cba
+
 module Bytezap.Parser.Struct.Generic where
 
 import Bytezap.Parser.Struct
@@ -19,6 +21,8 @@ class GParseBase tag where
     type GParseBaseE tag :: Type
 
     -- unlike the serializer we stay newtyped because we want our Functor
+    --
+    -- TODO this is where we need to pass a bunch of metadata. see gdf
     gParseBase
         :: GParseBaseC tag a
         => ParserT (GParseBaseSt tag) (GParseBaseE tag) a
