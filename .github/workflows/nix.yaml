@@ -4,7 +4,8 @@ on:
   push:
 
 jobs:
-  nix-build:
+  nix-build-ghc98:
+    name: nix build .#ghc98-bytezap
     runs-on: ubuntu-latest
     permissions:
       id-token: "write"
@@ -14,4 +15,4 @@ jobs:
     - uses: DeterminateSystems/nix-installer-action@main
     - uses: DeterminateSystems/magic-nix-cache-action@main
     - uses: DeterminateSystems/flake-checker-action@main
-    - run: nix build .
+    - run: nix build .#ghc98-bytezap
