@@ -36,7 +36,6 @@ library
       Bytezap.Poke
       Bytezap.Poke.Derived
       Bytezap.Poke.Derived.Endian
-      Bytezap.Poke.Json
       Bytezap.Poke.KnownLen
       Bytezap.Struct
       Bytezap.Struct.Generic
