@@ -22,6 +22,12 @@
       perSystem = { self', pkgs, config, ... }: {
         packages.default  = self'.packages.ghc98-bytezap;
         devShells.default = self'.devShells.ghc98;
+        haskellProjects.ghc910 = {
+          basePackages = pkgs.haskell.packages.ghc910;
+          # v https://github.com/phadej/defun/pull/5
+          settings.defun-core.jailbreak = true;
+          devShell = defDevShell "ghc910";
+        };
         haskellProjects.ghc98 = {
           basePackages = pkgs.haskell.packages.ghc98;
           devShell = defDevShell "ghc98";
