@@ -28,8 +28,8 @@ source-repository head
 
 library
   exposed-modules:
-      Bytezap
       Bytezap.Common.Generic
+      Bytezap.Common.TypeNats
       Bytezap.Parser.Struct
       Bytezap.Parser.Struct.Generic
       Bytezap.Parser.Struct.TypeLits.Bytes
@@ -38,7 +38,6 @@ library
       Bytezap.Poke.Derived.Endian
       Bytezap.Poke.Json
       Bytezap.Poke.KnownLen
-      Bytezap.PokeCPS
       Bytezap.Struct
       Bytezap.Struct.Generic
       Bytezap.Struct.TypeLits.Bytes
@@ -51,8 +50,6 @@ library
       Raehik.Compat.Data.Word.ByteSwap
       Raehik.Compat.GHC.Exts.GHC908MemcpyPrimops
       Raehik.Compat.GHC.Exts.GHC910UnalignedAddrPrimops
-      Tmp.BSExt
-      Util.TypeNats
   other-modules:
       Paths_bytezap
   hs-source-dirs:
@@ -69,8 +66,6 @@ library
       DataKinds
       MagicHash
   ghc-options: -Wall
-  c-sources:
-      cbits/aligned-static-hs-data.c
   build-depends:
       base >=4.18.0.0 && <4.21
     , bytestring >=0.11.5.3 && <0.13.0.0

@@ -2,7 +2,7 @@
 
 -- | Handy typenat utils.
 
-module Util.TypeNats where
+module Bytezap.Common.TypeNats where
 
 -- natVal''
 import GHC.TypeNats ( Natural, KnownNat, natVal' )

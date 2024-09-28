@@ -27,9 +27,9 @@ import Bytezap.Struct
 import GHC.Generics
 import GHC.Exts
 import Bytezap.Common.Generic ( type GTFoldMapCAddition )
+import Bytezap.Common.TypeNats ( natValInt )
 import Data.Kind
 import GHC.TypeNats
-import Util.TypeNats ( natValInt )
 import DeFun.Core ( type (~>) )
 
 -- | Class for holding info on class to use for poking base cases.

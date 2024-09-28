@@ -5,7 +5,7 @@ import Bytezap.Poke qualified as P
 import GHC.TypeNats
 import Data.ByteString qualified as BS
 import GHC.Exts
-import Util.TypeNats ( natValInt )
+import Bytezap.Common.TypeNats ( natValInt )
 
 import Raehik.Compat.Data.Primitive.Types
 

@@ -14,7 +14,7 @@ import GHC.Exts
 import Data.Kind
 import GHC.TypeNats
 import GHC.TypeLits ( KnownSymbol, symbolVal' )
-import Util.TypeNats ( natValInt )
+import Bytezap.Common.TypeNats ( natValInt )
 import Bytezap.Common.Generic ( type GTFoldMapCAddition )
 import DeFun.Core ( type (~>) )
 

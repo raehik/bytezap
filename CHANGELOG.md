@@ -1,3 +1,8 @@
+## Unreleased
+* pass metadata in generic struct parser (for pretty errors)
+* rewrite type-level bytestring parser (better errors)
+* clean up source tree
+
 ## 1.4.0 (2024-09-25)
 * `Write` now takes a type-level `LengthType` to indicate how it should be used
 * rewrite type-level bytestring parsing: now with error handling!
