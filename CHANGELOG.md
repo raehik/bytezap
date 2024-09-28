@@ -1,3 +1,6 @@
+## 1.6.0 (2024-09-28)
+* disable another WIP module
+
 ## 1.5.0 (2024-09-28)
 * pass metadata in generic struct parser (for pretty errors)
 * rewrite type-level bytestring parser (better errors)
