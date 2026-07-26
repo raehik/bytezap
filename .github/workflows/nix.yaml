@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ghc: [ghc98, ghc910]
+        ghc: [ghc98, ghc910, ghc912, ghc914]
     runs-on: ubuntu-latest
     permissions:
       id-token: "write"
